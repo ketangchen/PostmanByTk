@@ -1309,7 +1309,7 @@ class SimplePostmanApp(tk.Tk):
         img_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         self.img_label = tk.Label(img_frame, text="图片预览区域", bg='#f0f0f0')
-        self.img_label.pack(fill=tk.BOTH, expand=True)
+        self.img_label.pack(fill=tk.BOTH, expand=True) # tk.BOTH
 
         # --- 图片自适应逻辑 ---
         def load_image_to_label(image_path):
@@ -1379,10 +1379,18 @@ class SimplePostmanApp(tk.Tk):
         self.lang_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.lang_combo.current(0)
 
+        tk.Label(btn_frame, text="识别内容:").pack(side=tk.LEFT, padx=(0, 5))
+        self.lang_combo1 = ttk.Combobox(btn_frame, values=["文本", "定位"])
+        self.lang_combo1.pack(side=tk.LEFT, padx=(0, 10))
+        self.lang_combo1.current(0)
+
         # 修改原按钮命令：调用load_image_to_label而非直接操作Label
         select_btn = ttk.Button(btn_frame, text="选择图片",
                                 command=lambda: self.select_image_for_ocr_tk())
         select_btn.pack(side=tk.RIGHT)
+
+
+
 
     def select_image_for_ocr_tk(self):
         """Tkinter版本的选择图片方法"""
@@ -1406,9 +1414,10 @@ class SimplePostmanApp(tk.Tk):
                             "日文": "japan", "韩文": "korean", "阿拉伯文": "arabic"}
                 selected_lang = self.lang_combo.get()
                 lang = lang_map[selected_lang]
+                pattern = self.lang_combo1.get()
 
                 # 调用OCR方法
-                self.seeImgToTxtByPaddleOcr(self.text_output, img_path, lang)
+                self.seeImgToTxtByPaddleOcr(self.text_output, img_path, lang, pattern)
 
             except Exception as e:
                 messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
@@ -1428,7 +1437,7 @@ class SimplePostmanApp(tk.Tk):
         else:
             return str(nested_list)
 
-    def seeImgToTxtByPaddleOcr(self, which_text, img_path, lang):
+    def seeImgToTxtByPaddleOcr(self, which_text, img_path, lang, pattern):
         # 创建PaddleOCR对象，指定语言模型，默认为中文英文模型
         ocr = PaddleOCR(use_angle_cls=True, lang=lang)  # 'ch'表示中文，'en'表示中文
         # 使用OCR进行文字识别
@@ -1450,10 +1459,13 @@ class SimplePostmanApp(tk.Tk):
             # 计算中心点坐标
             center_x = (x1 + x2 + x3 + x4) / 4
             center_y = (y1 + y2 + y3 + y4) / 4
-            textResult = f"检测到文本：{line[1][0]}，置信度：{line[1][1]}，该行文本的中心坐标是: ({center_x}, {center_y})"
+            textResult = " "
             # print(f"检测到文本：{line[1][0]}，置信度：{line[1][1]}，该行文本的中心坐标是: ({center_x}, {center_y})")
             # print(f"{modifyTxt(line[1][0])}")
-            self.clearContent(which_text)
+            if pattern == '文本':
+                textResult = f"{line[1][0]}"
+            elif pattern == '定位':
+                textResult = f"检测到文本：{line[1][0]}，置信度：{line[1][1]}，该行文本的中心坐标是: ({center_x}, {center_y})"
             # 修正方案1：确保result为字符串类型
             if not isinstance(textResult, str):
                 textResult = str(result)
@@ -1461,7 +1473,9 @@ class SimplePostmanApp(tk.Tk):
             # print(f"{line[1][0]}")
             # d[line[1][0]] = (center_x, center_y)
         # return d
+        self.clearContent(which_text)
         which_text.insert('insert', '\n'.join(res))
+
 
     # 删除日志
     def delete_records(self):
