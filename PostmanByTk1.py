@@ -66,51 +66,7 @@ if not os.path.exists(caseExcelfilePath):
 encodingType = 'gbk'
 
 
-def askAI(question, model="gpt-4o-mini", delay=1.5):
-    """单次提问函数"""
-    try:
-        print(f"\n正在处理问题: {question[:30]}...")
 
-        completion = openai.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": question}],
-            timeout=20  # 增加超时限制
-        )
-        answer = completion.choices[0].message.content
-        # 打印当前结果
-        print(f"【问题】{question}\n【回答】{answer}\n")
-        sleep(delay)  # 避免频繁请求
-    except Exception as e:
-        answer = f"ERROR: {str(e)}"
-        print(answer)
-    return answer
-
-
-def batch_askAI(questions, model="gpt-4o-mini", delay=1.5):
-    """批量提问函数"""
-    results = []
-    for idx, question in enumerate(questions, 1):
-        try:
-            print(f"\n正在处理问题 {idx}/{len(questions)}: {question[:30]}...")
-
-            completion = openai.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": question}],
-                timeout=20  # 增加超时限制
-            )
-
-            answer = completion.choices[0].message.content
-            results.append((question, answer))
-
-            # 打印当前结果
-            print(f"【问题】{question}\n【回答】{answer[:100]}...\n")
-            sleep(delay)  # 避免频繁请求
-
-        except Exception as e:
-            print(f"问题 {idx} 处理失败: {str(e)}")
-            results.append((question, f"ERROR: {str(e)}"))
-
-    return results
 
 
 def write_xmind_data_to_excel(casePathDataList, caseType):
@@ -687,6 +643,57 @@ class SimplePostmanApp(tk.Tk):
         print("微销操作")
         # 在这里添加撒销操作的具体实现代码
 
+    def askAI(self, qtext, atext, model="gpt-4o-mini"):
+        """单次提问函数"""
+        question=qtext.get("1.0", tk.END)
+        delay = 1.5
+        self.messageInformInWin("提问中......", 3000)
+        try:
+            print(f"\n正在处理问题: {question[:30]}...")
+
+            completion = openai.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": question}],
+                timeout=20  # 增加超时限制
+            )
+            answer = completion.choices[0].message.content
+            # 打印当前结果
+            print(f"【问题】{question}\n【回答】{answer}\n")
+            self.clearContent(atext)
+            atext.insert(tk.END,f'{answer}')
+            sleep(delay)  # 避免频繁请求
+        except Exception as e:
+            answer = f"ERROR: {str(e)}"
+            print(answer)
+            atext.insert(tk.END, f'{answer}')
+        #return answer
+
+    def batch_askAI(self, questions, qtext, atext, model="gpt-4o-mini", delay=1.5):
+        """批量提问函数"""
+        results = []
+        for idx, question in enumerate(questions, 1):
+            try:
+                print(f"\n正在处理问题 {idx}/{len(questions)}: {question[:30]}...")
+
+                completion = openai.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": question}],
+                    timeout=20  # 增加超时限制
+                )
+
+                answer = completion.choices[0].message.content
+                results.append((question, answer))
+
+                # 打印当前结果
+                print(f"【问题】{question}\n【回答】{answer[:100]}...\n")
+                sleep(delay)  # 避免频繁请求
+
+            except Exception as e:
+                print(f"问题 {idx} 处理失败: {str(e)}")
+                results.append((question, f"ERROR: {str(e)}"))
+
+        #return results
+
     def write_xmind_to_excel(self, which_combobox):
         # 设置文件类型过滤器，只显示XMind文件(.xmind)
         filetypes = [('XMind files', '*.xmind')]
@@ -813,12 +820,12 @@ class SimplePostmanApp(tk.Tk):
         screen_width = sub_window.winfo_screenwidth()
         screen_height = sub_window.winfo_screenheight()
         # 设置坐标
-        x = (screen_width - 800) // 2
+        x = (screen_width - 1000) // 2
         y = (screen_height - 500) // 2
         # 设置应用名
         sub_window.title("SeeImgToTxt")
         # 设置窗口展示位置和大小
-        sub_window.geometry(f"{800}x{500}+{x}+{y}")
+        sub_window.geometry(f"{1000}x{500}+{x}+{y}")
         # 设置窗口自适应
         sub_window.grid_columnconfigure(1, weight=1)
         sub_window.grid_rowconfigure(5, weight=1)
@@ -826,6 +833,35 @@ class SimplePostmanApp(tk.Tk):
         # Label = tk.Label(sub_window，text="这是一个子窗口")
         # label.pack()
         self.create_tools_sub_widgets2(sub_window)
+
+    def create_tools_sub_window3(self):
+
+        # 创建工具子窗口
+        sub_window = tk.Toplevel(self)
+        try:
+            # 设置子窗口图标
+            sub_window.wm_iconbitmap(bitmap=f'{current_script_path}/happy.ico')
+        except:
+            pass
+        # 设置窗口背景颜色
+        sub_window.configure(bg='lightskyblue')
+        # 获取电脑分辨率
+        screen_width = sub_window.winfo_screenwidth()
+        screen_height = sub_window.winfo_screenheight()
+        # 设置坐标
+        x = (screen_width - 1000) // 2
+        y = (screen_height - 500) // 2
+        # 设置应用名
+        sub_window.title("QaByAI")
+        # 设置窗口展示位置和大小
+        sub_window.geometry(f"{1000}x{500}+{x}+{y}")
+        # 设置窗口自适应
+        sub_window.grid_columnconfigure(1, weight=1)
+        sub_window.grid_rowconfigure(5, weight=1)
+        # 在子窗口中添加标签
+        # Label = tk.Label(sub_window，text="这是一个子窗口")
+        # label.pack()
+        self.create_tools_sub_widgets3(sub_window)
 
     def change_picture_format(self):
 
@@ -1019,17 +1055,21 @@ class SimplePostmanApp(tk.Tk):
         # self.search_combobox['values'] = find_value_of_key_in_nested_dict(read_json_file(f'{current_script_path}/configini.json'), "Searchkey")# list
         self.search_combobox.current(0)  # 设置默认值为列表中的第一个元素
 
-        self.set_button = tk.Button(self, text="Tools", command=self.create_tools_sub_window)  # 组件按钮格式化功能
-        self.set_button.grid(column=2,
+        self.set_button_Tools = tk.Button(self, text="Tools", command=self.create_tools_sub_window)  # 组件按钮格式化功能
+        self.set_button_Tools.grid(column=2,
                              row=11)  # self,set button = tk.Button(self, text="json",command=self,find_file_to_fill_record) # 组件按纽定将式化函教功能# self.set button.grid(column=2，row=1)
 
-        self.set_button = tk.Button(self, text="ChangeImg", command=self.create_tools_sub_window1)  # 组件按钮格式化功能
-        self.set_button.grid(column=2,
+        self.set_button_ChangeImg = tk.Button(self, text="ChangeImg", command=self.create_tools_sub_window1)  # 组件按钮格式化功能
+        self.set_button_ChangeImg.grid(column=2,
                              row=12)  # self,set button = tk.Button(self, text="json",command=self,find_file_to_fill_record) # 组件按纽定将式化函教功能# self.set button.grid(column=2，row=1)
 
-        self.set_button = tk.Button(self, text="SeeImgToTxt", command=self.create_tools_sub_window2)  # 组件按钮格式化功能
-        self.set_button.grid(column=2,
+        self.set_button_SeeImgToTxt = tk.Button(self, text="SeeImgToTxt", command=self.create_tools_sub_window2)  # 组件按钮格式化功能
+        self.set_button_SeeImgToTxt.grid(column=2,
                              row=13)  # self,set button = tk.Button(self, text="json",command=self,find_file_to_fill_record) # 组件按纽定将式化函教功能# self.set button.grid(column=2，row=1)
+
+        self.set_button_QaByAI = tk.Button(self, text="QaByAI", command=self.create_tools_sub_window3)  # 组件按钮格式化功能
+        self.set_button_QaByAI.grid(column=2,
+                             row=14)  # self,set button = tk.Button(self, text="json",command=self,find_file_to_fill_record) # 组件按纽定将式化函教功能# self.set button.grid(column=2，row=1)
 
         self.select_record_button = tk.Button(self, text="Select Records:", anchor='c',
                                               command=self.find_file_to_fill_record)  #
@@ -1389,9 +1429,6 @@ class SimplePostmanApp(tk.Tk):
                                 command=lambda: self.select_image_for_ocr_tk())
         select_btn.pack(side=tk.RIGHT)
 
-
-
-
     def select_image_for_ocr_tk(self):
         """Tkinter版本的选择图片方法"""
         img_path = filedialog.askopenfilename(
@@ -1421,10 +1458,145 @@ class SimplePostmanApp(tk.Tk):
 
             except Exception as e:
                 messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
+    def select_image_for_ocr_qa(self):
+        """Tkinter版本的选择图片方法"""
+        img_path = filedialog.askopenfilename(
+            title="选择图片",
+            filetypes=[("图片文件", "*.png *.jpg *.jpeg *.bmp")]
+        )
+
+        if img_path:
+            try:
+                # # 显示图片
+                # img = Image.open(img_path)
+                # img.thumbnail((400, 400))  # 限制显示大小
+                # photo = ImageTk.PhotoImage(img)
+                #
+                # self.img_label.config(image=photo)
+                # self.img_label.image = photo  # 保持引用
+
+                # 调用OCR识别  param lang must in dict_keys(['ch', 'en', 'korean', 'japan', 'chinese_cht', 'ta', 'te', 'ka', 'latin', 'arabic', 'cyrillic', 'devanagari']), but got chi_sim
+                lang_map = {"中文": "ch", "英文": "en",
+                            "日文": "japan", "韩文": "korean", "阿拉伯文": "arabic"}
+                selected_lang = self.lang_combo.get()
+                lang = lang_map[selected_lang]
+
+                # 调用OCR方法
+                self.seeImgToTxtByPaddleOcr1(self.left_text_output, img_path, lang)
+
+                self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
+
+            except Exception as e:
+                messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
 
     """
     上述代码不符合要求，选择插入的图片未能自适应填充满img_frame区域，要求不改变代码的基本功能进行修改
     """
+
+    def create_tools_sub_widgets3(self, sub_win):
+        """创建图片OCR识别界面布局（左图右文）- 支持图片自适应填充"""
+        # --- 第一行主框架 ---
+        main_frame = tk.Frame(sub_win)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # ===== 左侧输入问题区域 =====
+        left_text_frame = tk.Frame(main_frame)
+        left_text_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        scrollbar = tk.Scrollbar(left_text_frame)
+        self.left_text_output = tk.Text(left_text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
+                                   font=('Consolas', 10), padx=5, pady=5)
+        scrollbar.config(command=self.left_text_output.yview)
+
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.left_text_output.pack(fill=tk.BOTH, expand=True)
+        self.left_text_output.insert(tk.END, "请输入问题.......")
+
+        # ===== 右侧RIGHT输出结果区域 =====
+        right_text_frame = tk.Frame(main_frame)
+        right_text_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        scrollbar = tk.Scrollbar(right_text_frame)
+        self.right_text_output = tk.Text(right_text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
+                                   font=('Consolas', 10), padx=5, pady=5)
+        scrollbar.config(command=self.right_text_output.yview)
+
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.right_text_output.pack(fill=tk.BOTH, expand=True)
+        self.right_text_output.insert(tk.END, "")
+
+        # --- 第二行主框架 ---
+        main_frame1 = tk.Frame(sub_win)
+        main_frame1.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # ===== 第二行左侧功能区域 =====
+        left_frame = tk.Frame(main_frame1)
+        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # --- 新增操作按钮组 ---
+        btn_group = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
+        btn_group.pack(fill=tk.X, pady=5)
+
+        # btn_ask = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
+        # btn_ask.pack(fill=tk.X, pady=5)
+
+        # 操作类型选择
+        self.output_operation = ttk.Combobox(
+            btn_group,
+            values=['Format', 'Copy', 'Paste', 'Clear'],
+            state='readonly'
+        )
+        self.output_operation.pack(side=tk.LEFT, padx=5, pady=2)
+        self.output_operation.current(2)
+
+        # 执行按钮
+        ttk.Button(
+            btn_group, text="Execute",
+            command=lambda: self.combinateCommonOperation(sub_win,
+                                                          self.left_text_output,
+                                                          self.output_operation)
+        ).pack(side=tk.LEFT, padx=5)
+
+        # ===== 第二行右侧功能区域 =====
+        right_frame = tk.Frame(main_frame1)
+        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+        # --- 新增操作按钮组 ---
+        btn_group = tk.Frame(right_frame, bd=1, relief=tk.RAISED)
+        btn_group.pack(fill=tk.X, pady=5)
+
+        # 操作类型选择
+        self.output_operation = ttk.Combobox(
+            btn_group,
+            values=['Format', 'Copy', 'Paste', 'Clear'],
+            state='readonly'
+        )
+        self.output_operation.pack(side=tk.RIGHT, padx=5, pady=2)
+        self.output_operation.current(1)
+
+        # 执行按钮
+        ttk.Button(
+            btn_group, text="Execute",
+            command=lambda: self.combinateCommonOperation(sub_win,
+                                                          self.right_text_output,
+                                                          self.output_operation)
+        ).pack(side=tk.RIGHT, padx=5)
+
+        # ===== 底部按钮区域 =====
+        btn_frame = tk.Frame(sub_win)
+        btn_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        tk.Label(btn_frame, text="识别语言:").pack(side=tk.LEFT, padx=(0, 5))
+        self.lang_combo = ttk.Combobox(btn_frame, values=["中文", "英文", "日文", "韩文", "阿拉伯文"])
+        self.lang_combo.pack(side=tk.LEFT, padx=(0, 10))
+        self.lang_combo.current(0)
+
+        ask_btn = ttk.Button(btn_frame, text="提问",command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini"))
+        ask_btn.pack(side=tk.LEFT)
+
+        # 修改原按钮命令：调用load_image_to_label而非直接操作Label
+        select_btn = ttk.Button(btn_frame, text="选择图片", command=lambda: self.select_image_for_ocr_qa())
+        select_btn.pack(side=tk.RIGHT)
 
     def nested_to_string(self, nested_list):
         """
@@ -1476,6 +1648,34 @@ class SimplePostmanApp(tk.Tk):
         self.clearContent(which_text)
         which_text.insert('insert', '\n'.join(res))
 
+    def seeImgToTxtByPaddleOcr1(self, which_text, img_path, lang):
+        # 创建PaddleOCR对象，指定语言模型，默认为中文英文模型
+        ocr = PaddleOCR(use_angle_cls=True, lang=lang)  # 'ch'表示中文，'en'表示中文
+        # 使用OCR进行文字识别
+        result = ocr.ocr(img_path, cls=True)
+        print(f"识别结果是：{result}")
+        print(f"识别结果是：{result[0]}")
+        print(type(result))
+        d = {}
+        res = []
+        # 结果展示
+        for line in result[0]:
+            # coords = line[0]  # 文本坐标
+            # # 获取四个角坐标
+            # x1, y1 = coords[0]
+            # x2, y2 = coords[1]
+            # x3, y3 = coords[2]
+            # x4, y4 = coords[3]
+            # # 计算中心点坐标
+            # center_x = (x1 + x2 + x3 + x4) / 4
+            # center_y = (y1 + y2 + y3 + y4) / 4
+            textResult = f"{line[1][0]}"
+            # 修正方案1：确保result为字符串类型
+            if not isinstance(textResult, str):
+                textResult = str(result)
+            res.append(textResult)
+        self.clearContent(which_text)
+        which_text.insert('insert', '\n'.join(res))
 
     # 删除日志
     def delete_records(self):
