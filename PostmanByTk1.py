@@ -473,7 +473,7 @@ def find_value_of_key_in_nested_dict(d, target_key):
                 if key == target_key:
                     result.append((current_path, value))
                 if isinstance(value, (dict, list)):
-                    stack.append((value, current, path))
+                    stack.append((value, current_path))
         elif isinstance(current, list):
             for idx, item in enumerate(current):
                 current_path = path + (idx,)
@@ -814,11 +814,11 @@ class SimplePostmanApp(tk.Tk):
         screen_height = sub_window.winfo_screenheight()
         # 设置坐标
         x = (screen_width - 800) // 2
-        y = (screen_height - 400) // 2
+        y = (screen_height - 500) // 2
         # 设置应用名
         sub_window.title("SeeImgToTxt")
-        # 设置展示位置
-        sub_window.geometry(f"{800}x{400}+{x}+{y}")
+        # 设置窗口展示位置和大小
+        sub_window.geometry(f"{800}x{500}+{x}+{y}")
         # 设置窗口自适应
         sub_window.grid_columnconfigure(1, weight=1)
         sub_window.grid_rowconfigure(5, weight=1)
@@ -894,7 +894,7 @@ class SimplePostmanApp(tk.Tk):
         self.headers_operation_combobox.grid(column=2, row=2)
         self.headers_operation_combobox.current(0)
         self.operation_headers_button = ttk.Button(self, text="Do",
-                                                   command=lambda: self.combinateCommonOperation(self.headers_text,
+                                                   command=lambda: self.combinateCommonOperation(self,self.headers_text,
                                                                                                  self.headers_operation_combobox))  # 组件按钮格式化功能
         self.operation_headers_button.grid(column=3, row=2)
 
@@ -1163,7 +1163,7 @@ class SimplePostmanApp(tk.Tk):
         sub_win.getHtmlData_button.grid(column=1, row=0)
 
         sub_win.getPythonCode_button = tk.Button(sub_win, text="GetPyCode", anchor="c", command=lambda: self.thread_it(
-            self.restore_python_code(sub_win.output_text, sub_win.output_text.get("1.0", "end-1c"))))
+            self.restore_python_code_by_AI(sub_win.output_text, sub_win.output_text.get("1.0", "end-1c"))))
         sub_win.getPythonCode_button.grid(column=1, row=1)
 
         sub_win.getTestData_button = tk.Button(sub_win, text="GetTestData", anchor="c", command=lambda: self.thread_it(
@@ -1946,10 +1946,13 @@ class SimplePostmanApp(tk.Tk):
             # 显示复制成功的消息《可选)
             print("内容已复制到剪贴板。")
             # messagebox.showinfo(value)messageInformInWin(value,lastingTime: 500)
+            self.messageInformInWin(value, 2800)
         except Exception as e:
-            which_win.clipboard_append('0000')  # 显示复制成功的消息《可选》
+            #which_win.clipboard_append('0000')  # 显示复制成功的消息《可选》
             print(f"内容复制到剪贴板失败，具体原因为:{e}")
+            which_win.clipboard_append(f"内容复制到剪贴板失败，具体原因为:{e}")  # 显示复制成功的消息《可选》
             # messagebox.showinfo(f"内容复制到剪贴板失败，具体原因为:{e}")messaneinformTnWincintorncontimplePostmanApp, find file_to_fill record()>try>with open(path, 'r") as file中"肉客更制到前贴板牛哈，且休厦因头
+            self.messageInformInWin(f"内容复制到剪贴板失败，具体原因为:{e}", 2800)
 
             # messagebox.showinfo(f"内容复制到剪贴板失败，具体原因为:{e}")
             # messageInformInWin(infomContent,f"内容复制到剪贴板失败，具体原因为: {e}",500)
