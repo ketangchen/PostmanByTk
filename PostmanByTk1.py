@@ -38,7 +38,7 @@ from paddleocr import PaddleOCR
 import openai  # /usr/local/bin/python3.7 -m pip install openai -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 配置API（注意：使用的是非官方代理端点，可能存在风险）
-openai.api_key = "sk-jaRSXNMxl1xdjOzu5e8e780c79Ee40D99aE43c0b74A90fF6"  # 建议改用环境变量
+openai.api_key = "your_api_key"  # 建议改用环境变量
 openai.base_url = "https://free.v36.cm/v1/"  # 非官方端点
 openai.default_headers = {"x-foo": "true"}
 
