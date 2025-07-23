@@ -1510,7 +1510,7 @@ class SimplePostmanApp(tk.Tk):
 
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.left_text_output.pack(fill=tk.BOTH, expand=True)
-        self.left_text_output.insert(tk.END, "请输入问题.......")
+        self.left_text_output.insert(tk.END, " ") #请输入问题.......
 
         # ===== 右侧RIGHT输出结果区域 =====
         right_text_frame = tk.Frame(main_frame)
@@ -1537,9 +1537,6 @@ class SimplePostmanApp(tk.Tk):
         btn_group = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
         btn_group.pack(fill=tk.X, pady=5)
 
-        # btn_ask = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
-        # btn_ask.pack(fill=tk.X, pady=5)
-
         # 操作类型选择
         self.output_operation = ttk.Combobox(
             btn_group,
@@ -1557,29 +1554,36 @@ class SimplePostmanApp(tk.Tk):
                                                           self.output_operation)
         ).pack(side=tk.LEFT, padx=5)
 
+        # --- 提问按钮 ---
+        btn_group1 = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
+        btn_group1.pack(fill=tk.X, pady=5)
+
+        # 提问按钮
+        ttk.Button(btn_group1, text="提问",command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini")).pack(side=tk.LEFT, padx=5)
+
         # ===== 第二行右侧功能区域 =====
         right_frame = tk.Frame(main_frame1)
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
         # --- 新增操作按钮组 ---
-        btn_group = tk.Frame(right_frame, bd=1, relief=tk.RAISED)
-        btn_group.pack(fill=tk.X, pady=5)
+        btn_group2 = tk.Frame(right_frame, bd=1, relief=tk.RAISED)
+        btn_group2.pack(fill=tk.X, pady=5)
 
         # 操作类型选择
-        self.output_operation = ttk.Combobox(
-            btn_group,
+        self.output_operation2 = ttk.Combobox(
+            btn_group2,
             values=['Format', 'Copy', 'Paste', 'Clear'],
             state='readonly'
         )
-        self.output_operation.pack(side=tk.RIGHT, padx=5, pady=2)
-        self.output_operation.current(1)
+        self.output_operation2.pack(side=tk.RIGHT, padx=5, pady=2)
+        self.output_operation2.current(1)
 
         # 执行按钮
         ttk.Button(
-            btn_group, text="Execute",
+            btn_group2, text="Execute",
             command=lambda: self.combinateCommonOperation(sub_win,
                                                           self.right_text_output,
-                                                          self.output_operation)
+                                                          self.output_operation2)
         ).pack(side=tk.RIGHT, padx=5)
 
         # ===== 底部按钮区域 =====
@@ -1591,11 +1595,11 @@ class SimplePostmanApp(tk.Tk):
         self.lang_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.lang_combo.current(0)
 
-        ask_btn = ttk.Button(btn_frame, text="提问",command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini"))
-        ask_btn.pack(side=tk.LEFT)
+        # ask_btn = ttk.Button(btn_frame, text="提问",command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini"))
+        # ask_btn.pack(side=tk.LEFT)
 
         # 修改原按钮命令：调用load_image_to_label而非直接操作Label
-        select_btn = ttk.Button(btn_frame, text="选择图片", command=lambda: self.select_image_for_ocr_qa())
+        select_btn = ttk.Button(btn_frame, text="选择图片提问", command=lambda: self.select_image_for_ocr_qa())
         select_btn.pack(side=tk.RIGHT)
 
     def nested_to_string(self, nested_list):
@@ -1978,6 +1982,7 @@ class SimplePostmanApp(tk.Tk):
 
     def combinateCommonOperation(self, which_win, which_text, which_combobox):
         operationName = which_combobox.get()
+        print(operationName)
         if operationName == 'Format':
             self.thread_it(self.format_content(which_text))
         elif operationName == 'Copy':
