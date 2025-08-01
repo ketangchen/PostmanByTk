@@ -35,7 +35,15 @@ import numpy as np
 from paddleocr import PaddleOCR
 import openai  # /usr/local/bin/python3.7 -m pip install openai -i https://pypi.tuna.tsinghua.edu.cn/simple
 
+import tkinter as tk
+from tkinter import Canvas, Toplevel
+from PIL import ImageGrab, ImageTk
+import numpy as np
+import time
+import os
+#from datetime import datetime
 
+from tkinter import PhotoImage
 
 from openpyxl.styles import PatternFill
 from openpyxl.formatting.rule import CellIsRule
@@ -52,6 +60,11 @@ QALogFileName = 'qa_log'
 QALogFilePath = f'{current_script_path}/{QALogFileName}'
 if not os.path.exists(QALogFilePath):
     os.makedirs(QALogFilePath)
+
+screenshotFileName = 'screenshots_log'
+screenshotFilePath = f'{current_script_path}/{screenshotFileName}'
+if not os.path.exists(screenshotFilePath):
+    os.makedirs(screenshotFilePath)
 
 fileName = 'file'
 filePath = f'{current_script_path}/{fileName}'
@@ -1510,7 +1523,26 @@ class SimplePostmanApp(tk.Tk):
                 lang = lang_map[selected_lang]
 
                 # 调用OCR方法
-                self.seeImgToTxtByPaddleOcr1(self.left_text_output, img_path, lang)
+                self.seeImgToTxtByPaddleOcr1(self.left_text_output, img_path, lang, 1)
+
+                self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
+
+                #save_qa_data(self.left_text_output.get("1.0", "end-1c"), self.right_text_output.get("1.0", "end-1c"))
+
+            except Exception as e:
+                messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
+
+    def select_image_for_ocr_qa1(self,img_path):
+        if img_path:
+            try:
+                # 调用OCR识别  param lang must in dict_keys(['ch', 'en', 'korean', 'japan', 'chinese_cht', 'ta', 'te', 'ka', 'latin', 'arabic', 'cyrillic', 'devanagari']), but got chi_sim
+                lang_map = {"中文": "ch", "英文": "en",
+                            "日文": "japan", "韩文": "korean", "阿拉伯文": "arabic"}
+                selected_lang = self.lang_combo.get()
+                lang = lang_map[selected_lang]
+
+                # 调用OCR方法
+                self.seeImgToTxtByPaddleOcr1(self.left_text_output, img_path, lang,1)
 
                 self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
 
@@ -1596,6 +1628,7 @@ class SimplePostmanApp(tk.Tk):
         self.qa_record_combo.pack(side=tk.LEFT, padx=5)
         ##绑定回调函数不传递额外参数##
         self.qa_record_combo.bind('<<ComboboxSelected>>', self.fill_QA_record)
+        self.load_qa_records(self.qa_record_combo)
 
         # ##绑定回调函数传递额外参数##
         # self.qa_record_combo.bind('<<ComboboxSelected>>', lambda e: self.fill_QA_record(e,self.qa_record_combo,self.left_text_output,self.right_text_output))
@@ -1638,12 +1671,218 @@ class SimplePostmanApp(tk.Tk):
         self.lang_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.lang_combo.current(0)
 
+        tk.Label(btn_frame, text="常用提问话术:").pack(side=tk.LEFT, padx=(0, 5))
+        self.lang_combo1 = ttk.Combobox(btn_frame, values=["，请结合通俗易懂的例子讲解下", "", ""])
+        self.lang_combo1.pack(side=tk.LEFT, padx=(0, 10))
+        self.lang_combo1.current(0)
+
         # ask_btn = ttk.Button(btn_frame, text="提问",command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini"))
         # ask_btn.pack(side=tk.LEFT)
 
         # 修改原按钮命令：调用load_image_to_label而非直接操作Label
-        select_btn = ttk.Button(btn_frame, text="选择图片提问", command=lambda: self.select_image_for_ocr_qa())
-        select_btn.pack(side=tk.RIGHT)
+
+        select_btn1 = ttk.Button(btn_frame, text="截图提问", command=lambda: self.start_region_selection())
+        select_btn1.pack(side=tk.RIGHT)
+
+        select_btn2 = ttk.Button(btn_frame, text="选图提问", command=lambda: self.select_image_for_ocr_qa())
+        select_btn2.pack(side=tk.RIGHT)
+
+        select_btn3 = ttk.Button(btn_frame, text="插入话术", command=lambda: self.insert_content_in_text(self.left_text_output,self.lang_combo1.get()))
+        select_btn3.pack(side=tk.LEFT)
+
+    def insert_content_in_text(self,which_text,content):
+        which_text.insert(tk.END,content)
+
+    def start_region_selection(self):
+        """启动区域选择模式"""
+        self.withdraw()  # 隐藏主窗口
+
+        # 创建全屏透明窗口用于区域选择
+        self.region_window = Toplevel()
+        self.region_window.attributes('-fullscreen', True)
+        self.region_window.attributes('-alpha', 0.3)
+        self.region_window.attributes('-topmost', True)
+        self.region_window.configure(bg='black')
+
+        # 创建画布
+        self.canvas = Canvas(self.region_window, cursor="cross", bg='black', highlightthickness=0)
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        # 绑定鼠标事件
+        self.canvas.bind("<ButtonPress-1>", self.on_press)
+        self.canvas.bind("<B1-Motion>", self.on_drag)
+        self.canvas.bind("<ButtonRelease-1>", self.on_release)
+        self.region_window.bind("<Escape>", self.cancel_selection)
+
+        # 提示文本
+        self.canvas.create_text(
+            self.region_window.winfo_screenwidth() // 2,
+            30,
+            text="拖动鼠标选择区域 (ESC取消)",
+            fill="white",
+            font=('微软雅黑', 16)
+        )
+
+    def on_press(self, event):
+        """鼠标按下事件"""
+        self.start_x = event.x
+        self.start_y = event.y
+
+        # 创建选择矩形
+        self.rect = self.canvas.create_rectangle(
+            self.start_x, self.start_y,
+            self.start_x, self.start_y,
+            outline='red', width=2
+        )
+
+    def on_drag(self, event):
+        """鼠标拖动事件"""
+        if self.rect:
+            self.canvas.coords(
+                self.rect,
+                self.start_x, self.start_y,
+                event.x, event.y
+            )
+
+    def on_release(self, event):
+        """鼠标释放事件"""
+        if not self.rect:
+            return
+
+        # 获取选择的区域坐标
+        x1, y1, x2, y2 = self.canvas.coords(self.rect)
+        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+
+        # 确保坐标有效
+        if abs(x2 - x1) < 10 or abs(y2 - y1) < 10:
+            self.cancel_selection()
+            return
+
+            # 关闭选择窗口
+        self.region_window.destroy()
+        self.region_window = None
+
+        # 短暂延迟确保窗口关闭
+        self.after(100, lambda: self.capture_region(x1, y1, x2, y2))
+
+    def cancel_selection(self, event=None):
+        """取消选择"""
+        if self.region_window:
+            self.region_window.destroy()
+            self.region_window = None
+        self.deiconify()
+
+    def capture_region(self, x1, y1, x2, y2):
+        """捕获选定区域"""
+        try:
+            # 调整坐标确保左上角到右下角
+            if x1 > x2:
+                x1, x2 = x2, x1
+            if y1 > y2:
+                y1, y2 = y2, y1
+
+            # 截图
+            self.screenshot = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+
+            # # 显示预览窗口
+            # self.show_preview()
+
+            # 生成带时间戳的文件名
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            default_filename = f"区域截图_{timestamp}.png"
+            # 保存截图
+            file_path = f'{current_script_path}/{screenshotFileName}/{default_filename}'
+            self.screenshot.save(file_path)
+
+
+            if os.path.exists(file_path):
+                print(file_path)
+                # 加载图片（需替换为实际路径）
+                image = Image.open(file_path)
+                photo = ImageTk.PhotoImage(image)
+                # 插入文字和图片
+                #self.left_text_output.insert("end", "文字部分1\n")
+                self.left_text_output.image_create("end", image=photo)  # 在末尾插入图片
+                #self.left_text_output.insert("end", "\n文字部分2\n")  # 继续插入文字
+                # 保持图片引用
+                self.left_text_output.image = photo
+
+            #截图识别
+            self.select_image_for_ocr_qa1(file_path)
+
+            # self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
+
+        except Exception as e:
+            tk.messagebox.showerror(" 错误", f"截图失败: {str(e)}")
+            self.deiconify()
+
+    def show_preview(self):
+        """显示截图预览"""
+        preview_window = Toplevel(self)
+        preview_window.title(" 截图预览 - 2025年8月")
+        preview_window.geometry("800x600")
+
+        # 转换图像为Tkinter格式
+        img_tk = ImageTk.PhotoImage(self.screenshot)
+
+        # 显示图像
+        label = tk.Label(preview_window, image=img_tk)
+        label.image = img_tk  # 保持引用
+        label.pack(pady=10)
+
+        # 添加保存按钮
+        btn_frame = tk.Frame(preview_window)
+        btn_frame.pack(pady=10)
+
+        tk.Button(
+            btn_frame,
+            text="保存截图",
+            command=lambda: self.save_screenshot(preview_window),
+            bg='#2196F3', fg='white',
+            font=('微软雅黑', 12),
+            padx=15
+        ).pack(side=tk.LEFT, padx=10)
+
+        tk.Button(
+            btn_frame,
+            text="取消",
+            command=preview_window.destroy,
+            bg='#9E9E9E', fg='white',
+            font=('微软雅黑', 12),
+            padx=15
+        ).pack(side=tk.LEFT)
+
+        # 窗口关闭时显示主窗口
+        preview_window.protocol("WM_DELETE_WINDOW", preview_window.destroy)
+
+    def save_screenshot(self, preview_window):
+        """保存截图到文件"""
+        try:
+            # 生成带时间戳的文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            default_filename = f"区域截图_{timestamp}.png"
+
+            # 弹出保存对话框
+            file_path = tk.filedialog.asksaveasfilename(
+                defaultextension=".png",
+                filetypes=[
+                    ("PNG文件", "*.png"),
+                    ("JPEG文件", "*.jpg"),
+                    ("BMP文件", "*.bmp"),
+                    ("所有文件", "*.*")
+                ],
+                initialfile=default_filename,
+                title="保存区域截图"
+            )
+
+            if file_path:
+                self.screenshot.save(file_path)
+                tk.messagebox.showinfo(" 保存成功", f"截图已保存到:\n{file_path}")
+                preview_window.destroy()
+                self.deiconify()
+        except Exception as e:
+            tk.messagebox.showerror(" 保存失败", f"无法保存文件: {str(e)}")
+
 
     def nested_to_string(self, nested_list):
         """
@@ -1695,7 +1934,7 @@ class SimplePostmanApp(tk.Tk):
         self.clearContent(which_text)
         which_text.insert('insert', '\n'.join(res))
 
-    def seeImgToTxtByPaddleOcr1(self, which_text, img_path, lang):
+    def seeImgToTxtByPaddleOcr1(self, which_text, img_path, lang, pattern):
         # 创建PaddleOCR对象，指定语言模型，默认为中文英文模型
         ocr = PaddleOCR(use_angle_cls=True, lang=lang)  # 'ch'表示中文，'en'表示中文
         # 使用OCR进行文字识别
@@ -1721,7 +1960,8 @@ class SimplePostmanApp(tk.Tk):
             if not isinstance(textResult, str):
                 textResult = str(result)
             res.append(textResult)
-        self.clearContent(which_text)
+        if pattern==0:
+            self.clearContent(which_text)
         which_text.insert('insert', '\n'.join(res))
 
     # 删除日志
