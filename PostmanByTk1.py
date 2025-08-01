@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import tkinter as tk  # /usr/local/bin/python3.7 pip -m install treelib  -i https://pypi.tuna.tsinghua.edu.cn/simple
-from tkinter import ttk, \
-    scrolledtext  # D:\Python\Python37\python.exe pip install pillow  -i https://pypi.tuna.tsinghua.edu.cn/simple
+from tkinter import ttk, scrolledtext  # D:\Python\Python37\python.exe pip install pillow  -i https://pypi.tuna.tsinghua.edu.cn/simple
 import requests
 import datetime
 from faker import Faker
@@ -12,8 +11,7 @@ import time
 from tkinter import messagebox
 import glob
 
-from PIL import Image, \
-    ImageTk  # /usr/local/bin/python3.7 -m pip install Pillow -i https://pypi.tuna.tsinghua.edu.cn/simple
+from PIL import Image, ImageTk  # /usr/local/bin/python3.7 -m pip install Pillow -i https://pypi.tuna.tsinghua.edu.cn/simple
 from PIL import Image, ImageTk  # pip install pillow
 
 import os
@@ -37,10 +35,7 @@ import numpy as np
 from paddleocr import PaddleOCR
 import openai  # /usr/local/bin/python3.7 -m pip install openai -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-# 配置API（注意：使用的是非官方代理端点，可能存在风险）
-openai.api_key = "your_api_key"  # 建议改用环境变量
-openai.base_url = "https://free.v36.cm/v1/"  # 非官方端点
-openai.default_headers = {"x-foo": "true"}
+
 
 from openpyxl.styles import PatternFill
 from openpyxl.formatting.rule import CellIsRule
@@ -52,6 +47,11 @@ logFileName = 'requests_log'
 logFilePath = f'{current_script_path}/{logFileName}'
 if not os.path.exists(logFilePath):
     os.makedirs(logFilePath)
+
+QALogFileName = 'qa_log'
+QALogFilePath = f'{current_script_path}/{QALogFileName}'
+if not os.path.exists(QALogFilePath):
+    os.makedirs(QALogFilePath)
 
 fileName = 'file'
 filePath = f'{current_script_path}/{fileName}'
@@ -65,8 +65,76 @@ if not os.path.exists(caseExcelfilePath):
 
 encodingType = 'gbk'
 
+# 读取JSON文件
+def read_json_file1(file_path) -> dict:
+    temp = []
+    res = ''
+    with open(file_path, 'r', encoding=encodingType) as f:
+        lines = f.readlines()
+        for line in lines:
+            temp.append(line.strip())
+    print(temp)
+    try:
+        res = json.loads(''.join(temp))
+        print(res)
+    except Exception as e:
+        res = {"error": f"{e}"}
+    return res
 
 
+def read_json_file(file_path) -> dict:
+    with open(file_path, 'r', encoding=encodingType) as file:  # 记得把对应json文件编码转化为gbk编码
+        data = json.load(file)
+        print(data)
+        return data
+
+def find_value_of_key_in_nested_dict(d, target_key):
+    """
+    非递归版本的搜索炭套宇典中的键对应值。
+    :param d: 要搜索的宁典或宁典列表。
+    :param target_key:要搜索的日标键
+    :return: 包含找到指定键对应值。
+    """
+
+    if isinstance(d, str):
+        d = json.loads(d)  # <class 'dict'>
+    if isinstance(d, dict):
+        stack = [(d, ())]
+    elif isinstance(d, list):
+        stack = [(item, ()) for item in d]
+    else:
+        return []
+
+    result = []
+
+    while stack:
+        current, path = stack.pop()
+
+        if isinstance(current, dict):
+            for key, value in current.items():
+                current_path = path + (key,)
+                if key == target_key:
+                    result.append((current_path, value))
+                if isinstance(value, (dict, list)):
+                    stack.append((value, current_path))
+        elif isinstance(current, list):
+            for idx, item in enumerate(current):
+                current_path = path + (idx,)
+                if isinstance(item, (dict, list)):
+                    stack.append((item, current_path))
+
+    print(result)
+    for r in result:
+        if len(r) != 0 and r[1] != None:
+            return r[1]
+    return 'None'
+
+# 配置API（注意：使用的是非官方代理端点，可能存在风险）
+#openai.api_key = "sk-jaRSXNMxl1xdjOzu5e8e780c79Ee40D99aE43c0b74A90fF6"  # 建议改用环境变量
+openai.api_key=find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')),  "apiKey")[0]
+print(openai.api_key)
+openai.base_url = "https://free.v36.cm/v1/"  # 非官方端点
+openai.default_headers = {"x-foo": "true"}
 
 
 def write_xmind_data_to_excel(casePathDataList, caseType):
@@ -295,28 +363,7 @@ def get_all_leaf_paths_data_list(tree, caseType):
         return res
 
 
-# 读取JSON文件
-def read_json_file1(file_path) -> dict:
-    temp = []
-    res = ''
-    with open(file_path, 'r', encoding=encodingType) as f:
-        lines = f.readlines()
-        for line in lines:
-            temp.append(line.strip())
-    print(temp)
-    try:
-        res = json.loads(''.join(temp))
-        print(res)
-    except Exception as e:
-        res = {"error": f"{e}"}
-    return res
 
-
-def read_json_file(file_path) -> dict:
-    with open(file_path, 'r', encoding=encodingType) as file:  # 记得把对应json文件编码转化为gbk编码
-        data = json.load(file)
-        print(data)
-        return data
 
 
 def getCurrentTimeInfo():
@@ -353,6 +400,16 @@ def save_request_data(url, headers, method, request_data, response_data):
     except Exception as e:
         print(e)
 
+def save_qa_data(qtext,atext):
+    """保存问答到文件"""
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f'{QALogFilePath}/{timestamp}.txt'
+    data = f'{qtext}\n******\n{atext}'
+    try:
+        with open(filename, 'w') as file:
+            file.write(data)
+    except Exception as e:
+        print(e)
 
 def list_request_records():
     """列出所有保存的请求记录文件"""
@@ -360,6 +417,11 @@ def list_request_records():
     files.sort(reverse=True)
     return files[::-1]
 
+def list_qa_records():
+    """列出所有保存的请求记录文件"""
+    files = os.listdir('qa_log')
+    files.sort(reverse=True)
+    return files[::-1]
 
 def find_all_key(dictionary):
     """
@@ -401,46 +463,7 @@ def find_key_and_update_value(dictionary, key_to_find, new_value) -> None:
                 stack.append((new_path, value))
 
 
-def find_value_of_key_in_nested_dict(d, target_key):
-    """
-    非递归版本的搜索炭套宇典中的键对应值。
-    :param d: 要搜索的宁典或宁典列表。
-    :param target_key:要搜索的日标键
-    :return: 包含找到指定键对应值。
-    """
 
-    if isinstance(d, str):
-        d = json.loads(d)  # <class 'dict'>
-    if isinstance(d, dict):
-        stack = [(d, ())]
-    elif isinstance(d, list):
-        stack = [(item, ()) for item in d]
-    else:
-        return []
-
-    result = []
-
-    while stack:
-        current, path = stack.pop()
-
-        if isinstance(current, dict):
-            for key, value in current.items():
-                current_path = path + (key,)
-                if key == target_key:
-                    result.append((current_path, value))
-                if isinstance(value, (dict, list)):
-                    stack.append((value, current_path))
-        elif isinstance(current, list):
-            for idx, item in enumerate(current):
-                current_path = path + (idx,)
-                if isinstance(item, (dict, list)):
-                    stack.append((item, current_path))
-
-    print(result)
-    for r in result:
-        if len(r) != 0 and r[1] != None:
-            return r[1]
-    return 'None'
 
 
 def generate_vin(length=17):
@@ -659,13 +682,17 @@ class SimplePostmanApp(tk.Tk):
             answer = completion.choices[0].message.content
             # 打印当前结果
             print(f"【问题】{question}\n【回答】{answer}\n")
+            save_qa_data(question,answer)
             self.clearContent(atext)
             atext.insert(tk.END,f'{answer}')
+            self.load_qa_records(self.qa_record_combo)
             sleep(delay)  # 避免频繁请求
         except Exception as e:
             answer = f"ERROR: {str(e)}"
             print(answer)
+            save_qa_data(question, answer)
             atext.insert(tk.END, f'{answer}')
+            self.load_qa_records(self.qa_record_combo)
         #return answer
 
     def batch_askAI(self, questions, qtext, atext, model="gpt-4o-mini", delay=1.5):
@@ -1458,6 +1485,7 @@ class SimplePostmanApp(tk.Tk):
 
             except Exception as e:
                 messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
+
     def select_image_for_ocr_qa(self):
         """Tkinter版本的选择图片方法"""
         img_path = filedialog.askopenfilename(
@@ -1485,6 +1513,8 @@ class SimplePostmanApp(tk.Tk):
                 self.seeImgToTxtByPaddleOcr1(self.left_text_output, img_path, lang)
 
                 self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
+
+                #save_qa_data(self.left_text_output.get("1.0", "end-1c"), self.right_text_output.get("1.0", "end-1c"))
 
             except Exception as e:
                 messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
@@ -1560,6 +1590,19 @@ class SimplePostmanApp(tk.Tk):
 
         # 提问按钮
         ttk.Button(btn_group1, text="提问",command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini")).pack(side=tk.LEFT, padx=5)
+
+        ttk.Button(btn_group1, text="Select Records:",command=lambda: self.find_file_to_fill_QA_record(self.qa_record_combo,self.left_text_output, self.right_text_output)).pack(side=tk.LEFT, padx=5)
+        self.qa_record_combo = ttk.Combobox(btn_group1, state='readonly', width=30)
+        self.qa_record_combo.pack(side=tk.LEFT, padx=5)
+        ##绑定回调函数不传递额外参数##
+        self.qa_record_combo.bind('<<ComboboxSelected>>', self.fill_QA_record)
+
+        # ##绑定回调函数传递额外参数##
+        # self.qa_record_combo.bind('<<ComboboxSelected>>', lambda e: self.fill_QA_record(e,self.qa_record_combo,self.left_text_output,self.right_text_output))
+
+
+
+        self.delete_qa_record_button = tk.Button(btn_group1, text="Delete Records", anchor='c',command=lambda: self.thread_it(self.delete_QA_records(self.qa_record_combo))).pack(side=tk.LEFT, padx=5)
 
         # ===== 第二行右侧功能区域 =====
         right_frame = tk.Frame(main_frame1)
@@ -1689,6 +1732,15 @@ class SimplePostmanApp(tk.Tk):
         for filename in glob.glob(os.path.join(directory, '20*')):
             os.remove(filename)  # 移除"20"开头的文件
         self.load_records()
+
+    # 删除问答日志
+    def delete_QA_records(self,which_combo):
+        # 设置目录路径
+        directory = f'{current_script_path}/qa_log'
+        # 获取所有以"20"开头的文件路径
+        for filename in glob.glob(os.path.join(directory, '20*')):
+            os.remove(filename)  # 移除"20"开头的文件
+        self.load_qa_records(which_combo)
 
     # 一定程度上缩进复制的网页python代码字符串
     def restore_python_code(self, which_text, code_str):  # 定义一个栈来跟踪代码块的缩进
@@ -2043,13 +2095,43 @@ class SimplePostmanApp(tk.Tk):
                 self.method_combobox.set(data['method'])
                 self.headers_text.delete(1.0, tk.END)
                 self.headers_text.insert(
-                    tk.END.json.dumps(data["headers"], ensure_ascii=False, indent=4).replace('\'', '\"'))
+                    tk.END,json.dumps(data["headers"], ensure_ascii=False, indent=4).replace('\'', '\"'))
                 self.body_text.delete(1.0, tk.END)
                 self.body_text.insert(tk.END,
                                       json.dumps(request_data, ensure_ascii=False, indent=4).replace('\'', '\"'))
                 self.response_text.delete(1, 0, tk.END)
                 self.response_text.insert(tk.END,
                                           json.dumps(response_data, ensure_ascii=False, indent=4).replace('\'', '\"'))
+        except:
+            pass
+
+    def find_file_to_fill_QA_record(self,which_combo,qtext,atext):
+        """通过选择的记录填充表单"""
+        record_file = which_combo #self.record_combobox.get()
+        # path = f'{curnent_script-pathl/(logFileNamel/irecord_filel
+        filetypes = [("Some Files", "*.txt")]
+        path = filedialog.askopenfilename(title="选择文件", filetypes=filetypes)
+        # 打开一个文件选择对话框，用户选择json文件
+        if not isfile(path):  # 检查所选文件是否存在
+            print(f"文件不存在:{path}")
+        else:
+            pass
+        try:
+            res=[]
+            with open(path, 'r') as file:
+                lines=file.readlines()
+                for line in lines:
+                    res.append(line)
+
+            qa=''.join(res)
+            q = qa.split('******')[0].strip()
+            a = qa.split('******')[1].strip()
+
+            qtext.delete(1.0, tk.END)
+            qtext.insert(tk.END,q)
+            atext.delete(1.0, tk.END)
+            atext.insert(tk.END,a)
+
         except:
             pass
 
@@ -2166,6 +2248,10 @@ class SimplePostmanApp(tk.Tk):
         records = list_request_records()
         self.record_combobox['values'] = records
 
+    def load_qa_records(self,which_combo):
+        records = list_qa_records()
+        which_combo['values'] = records
+
     ## 发送请求的函数
     def send_request(self):
         # 获取用户输入
@@ -2260,6 +2346,31 @@ class SimplePostmanApp(tk.Tk):
             self.response_text.delete(1.0, tk.END)
             self.response_text.insert(tk.END,
                                       json.dumps(response_data, ensure_ascii=False, indent=4).replace('\'', '\"'))
+
+    def fill_QA_record(self, event):
+        """通过选择的记录填充表单"""
+        record_file = self.qa_record_combo.get() #self.record_combobox.get()
+        qtext = self.left_text_output
+        atext = self.right_text_output
+        path = f'{current_script_path}/{QALogFileName}/{record_file}'
+        try:
+            res = []
+            with open(path, 'r') as file:
+                lines = file.readlines()
+                for line in lines:
+                    res.append(line)
+
+            qa = ''.join(res)
+            q = qa.split('******')[0]
+            a = qa.split('******')[1]
+
+            qtext.delete(1.0, tk.END)
+            qtext.insert(tk.END, q)
+            atext.delete(1.0, tk.END)
+            atext.insert(tk.END, a)
+
+        except:
+            pass
 
     def copy_headers_text(self):
         # 获取输入框内容
