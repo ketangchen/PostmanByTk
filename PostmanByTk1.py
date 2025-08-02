@@ -1853,15 +1853,35 @@ class SimplePostmanApp(tk.Tk):
 
             if os.path.exists(file_path):
                 print(file_path)
-                # 加载图片（需替换为实际路径）
+                # # 加载图片（需替换为实际路径）
+                # image = Image.open(file_path)
+                # photo = ImageTk.PhotoImage(image)
+                # # 插入文字和图片
+                # #self.left_text_output.insert("end", "文字部分1\n")
+                # self.left_text_output.image_create("end", image=photo)  # 在末尾插入图片
+                # #self.left_text_output.insert("end", "\n文字部分2\n")  # 继续插入文字
+                # # 保持图片引用
+                # self.left_text_output.image = photo
+
+                # 1. 打开图片并获取控件宽度
                 image = Image.open(file_path)
-                photo = ImageTk.PhotoImage(image)
-                # 插入文字和图片
-                #self.left_text_output.insert("end", "文字部分1\n")
+                widget_width = self.left_text_output.winfo_width() - 20  # 预留边距
+
+                # 2. 计算缩放比例（保持宽高比）
+                if widget_width < 1:  # 避免初始宽度为0
+                    widget_width = 300  # 默认宽度
+                ratio = widget_width / image.width
+                new_height = int(image.height * ratio)
+
+                # 3. 缩放图片
+                resized_image = image.resize((widget_width, new_height), Image.LANCZOS)
+                photo = ImageTk.PhotoImage(resized_image)
+
+                # 4. 插入文字和图片并保持引用
+                self.left_text_output.insert("end", "")  # 插入文字
                 self.left_text_output.image_create("end", image=photo)  # 在末尾插入图片
-                #self.left_text_output.insert("end", "\n文字部分2\n")  # 继续插入文字
-                # 保持图片引用
-                self.left_text_output.image = photo
+                self.left_text_output.insert("end", "\n")  # 继续插入文字
+                self.left_text_output.image = photo  # 防止被垃圾回收
 
             #截图识别
             self.select_image_for_ocr_qa1(file_path)
