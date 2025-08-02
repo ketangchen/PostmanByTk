@@ -1396,11 +1396,13 @@ class SimplePostmanApp(tk.Tk):
         scrollbar = tk.Scrollbar(img_frame)
         self.left_img_output = tk.Text(img_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
                                         font=('Consolas', 10), padx=5, pady=5)
+        # tk.Text内添加功能按钮
+        self.add_function_buttons_in_text1(sub_win, self.left_img_output,1)
         scrollbar.config(command=self.left_img_output.yview)
 
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.left_img_output.pack(fill=tk.BOTH, expand=True)
-        self.left_img_output.insert(tk.END, "在这里插入要识别的图片...\n")
+        self.left_img_output.insert(tk.END, "")
 
         # ===== 右侧功能区域 =====
         right_frame = tk.Frame(main_frame)
@@ -1413,32 +1415,34 @@ class SimplePostmanApp(tk.Tk):
         scrollbar1 = tk.Scrollbar(text_frame)
         self.text_output = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar1.set,
                                    font=('Consolas', 10), padx=5, pady=5)
+        # tk.Text内添加功能按钮
+        self.add_function_buttons_in_text1(sub_win, self.text_output,0)
         scrollbar1.config(command=self.text_output.yview)
 
         scrollbar1.pack(side=tk.RIGHT, fill=tk.Y)
         self.text_output.pack(fill=tk.BOTH, expand=True)
-        self.text_output.insert(tk.END, "OCR识别结果将显示在这里...")
+        self.text_output.insert(tk.END, "")
 
-        # --- 新增操作按钮组 ---
-        btn_group = tk.Frame(right_frame, bd=1, relief=tk.RAISED)
-        btn_group.pack(fill=tk.X, pady=5)
-
-        # 操作类型选择
-        self.output_operation = ttk.Combobox(
-            btn_group,
-            values=['Format', 'Copy', 'Paste', 'Clear'],
-            state='readonly'
-        )
-        self.output_operation.pack(side=tk.LEFT, padx=5, pady=2)
-        self.output_operation.current(1)
-
-        # 执行按钮
-        ttk.Button(
-            btn_group, text="Execute",
-            command=lambda: self.combinateCommonOperation(sub_win,
-                                                          self.text_output,
-                                                          self.output_operation)
-        ).pack(side=tk.LEFT, padx=5)
+        # # --- 新增操作按钮组 ---
+        # btn_group = tk.Frame(right_frame, bd=1, relief=tk.RAISED)
+        # btn_group.pack(fill=tk.X, pady=5)
+        #
+        # # 操作类型选择
+        # self.output_operation = ttk.Combobox(
+        #     btn_group,
+        #     values=['Format', 'Copy', 'Paste', 'Clear'],
+        #     state='readonly'
+        # )
+        # self.output_operation.pack(side=tk.LEFT, padx=5, pady=2)
+        # self.output_operation.current(1)
+        #
+        # # 执行按钮
+        # ttk.Button(
+        #     btn_group, text="Execute",
+        #     command=lambda: self.combinateCommonOperation(sub_win,
+        #                                                   self.text_output,
+        #                                                   self.output_operation)
+        # ).pack(side=tk.LEFT, padx=5)
 
         # ===== 底部按钮区域（保持不变） =====
         btn_frame = tk.Frame(sub_win)
@@ -1454,10 +1458,10 @@ class SimplePostmanApp(tk.Tk):
         self.lang_combo1.pack(side=tk.LEFT, padx=(0, 10))
         self.lang_combo1.current(0)
 
-        # 修改原按钮命令：调用load_image_to_label而非直接操作Label
-        select_btn = ttk.Button(btn_frame, text="选择图片",
-                                command=lambda: self.thread_it(self.select_image_for_ocr_tk()))
-        select_btn.pack(side=tk.RIGHT)
+        # # 修改原按钮命令：调用load_image_to_label而非直接操作Label
+        # select_btn = ttk.Button(btn_frame, text="选择图片",
+        #                         command=lambda: self.thread_it(self.select_image_for_ocr_tk()))
+        # select_btn.pack(side=tk.RIGHT)
 
     def select_image_for_ocr_tk(self):
         """Tkinter版本的选择图片方法"""
@@ -1549,6 +1553,7 @@ class SimplePostmanApp(tk.Tk):
                 photo = ImageTk.PhotoImage(resized_image)
 
                 # 4. 插入文字和图片并保持引用
+                self.clearContent(self.left_text_output)
                 self.left_text_output.insert("end", "")# 插入文字
                 self.left_text_output.image_create("end", image=photo)  # 在末尾插入图片
                 self.left_text_output.insert("end", "\n")  # 继续插入文字
@@ -1597,7 +1602,46 @@ class SimplePostmanApp(tk.Tk):
                 # 调用OCR方法
                 self.seeImgToTxtByPaddleOcr1(self.left_text_output, img_path, lang,1)
 
-                self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
+                #self.askAI(self.left_img_output, self.text_output,"gpt-4o-mini")
+
+                #save_qa_data(self.left_text_output.get("1.0", "end-1c"), self.right_text_output.get("1.0", "end-1c"))
+
+            except Exception as e:
+                messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
+
+    def select_image_for_ocr_tk1(self,img_path):
+        if img_path:
+            try:
+                # 调用OCR识别  param lang must in dict_keys(['ch', 'en', 'korean', 'japan', 'chinese_cht', 'ta', 'te', 'ka', 'latin', 'arabic', 'cyrillic', 'devanagari']), but got chi_sim
+                lang_map = {"中文": "ch", "英文": "en",
+                            "日文": "japan", "韩文": "korean", "阿拉伯文": "arabic"}
+                selected_lang = self.lang_combo.get()
+                lang = lang_map[selected_lang]
+
+                # 1. 打开图片并获取控件宽度
+                image = Image.open(img_path)
+                widget_width = self.left_img_output.winfo_width() - 20  # 预留边距
+
+                # 2. 计算缩放比例（保持宽高比）
+                if widget_width < 1:  # 避免初始宽度为0
+                    widget_width = 300  # 默认宽度
+                ratio = widget_width / image.width
+                new_height = int(image.height * ratio)
+
+                # 3. 缩放图片
+                resized_image = image.resize((widget_width, new_height), Image.LANCZOS)
+                photo = ImageTk.PhotoImage(resized_image)
+
+                # 4. 插入文字和图片并保持引用
+                self.left_img_output.insert("end", "")  # 插入文字
+                self.left_img_output.image_create("end", image=photo)  # 在末尾插入图片
+                self.left_img_output.insert("end", "\n")  # 继续插入文字
+                self.left_img_output.image = photo  # 防止被垃圾回收
+
+                # 调用OCR方法
+                self.seeImgToTxtByPaddleOcr1(self.text_output, img_path, lang, 0)
+
+                #self.askAI(self.left_img_output, self.text_output,"gpt-4o-mini")
 
                 #save_qa_data(self.left_text_output.get("1.0", "end-1c"), self.right_text_output.get("1.0", "end-1c"))
 
@@ -1607,6 +1651,80 @@ class SimplePostmanApp(tk.Tk):
     """
     上述代码不符合要求，选择插入的图片未能自适应填充满img_frame区域，要求不改变代码的基本功能进行修改
     """
+
+    def adjust_combobox_width(which_combobox):
+        # 获取最长条目的宽度
+        max_len = max(len(x) for x in which_combobox['values'])
+        which_combobox.configure(width=max_len + 2)  # 增加额外边距
+
+    def add_function_buttons_in_text(self, which_win, which_text, pattern):
+        # 创建功能按钮的Frame（放在Text控件底部）
+        button_frame1 = ttk.Frame(which_text.master)
+        button_frame1.pack(side=tk.BOTTOM, fill=tk.X)
+
+        if pattern==1:
+            # 自定义功能
+            question_btn = ttk.Button(button_frame1, text="Question", command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini"))  # command=lambda: which_text.delete(1.0, tk.END))
+            question_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+            select_btn1 = ttk.Button(button_frame1, text="Screenshot",command=lambda: self.thread_it(self.start_region_selection(self)))
+            select_btn1.pack(side=tk.LEFT, padx=2, pady=2)
+
+            select_btn2 = ttk.Button(button_frame1, text="Choice",command=lambda: self.thread_it(self.select_image_for_ocr_qa()))
+            select_btn2.pack(side=tk.LEFT, padx=2, pady=2)
+
+        # 创建功能按钮的Frame（放在Text控件底部）
+        button_frame2 = ttk.Frame(which_text.master)
+        button_frame2.pack(side=tk.BOTTOM, fill=tk.X)
+
+        # 复制按钮
+        copy_btn = ttk.Button(button_frame2, text="Copy", command=lambda: self.copy_content(which_text) ) #command=lambda: which_text.event_generate("<<Copy>>"))
+        copy_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        # 粘贴按钮
+        paste_btn = ttk.Button(button_frame2, text="Paste", command=lambda: self.paste(which_win, which_text)) #command=lambda: which_text.event_generate("<<Paste>>"))
+        paste_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        # 剪切按钮（可选）
+        cut_btn = ttk.Button(button_frame2, text="Cut", command=lambda: self.cut_content(which_text)) #command=lambda: which_text.event_generate("<<Cut>>"))
+        cut_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        # 清空按钮（自定义功能）
+        clear_btn = ttk.Button(button_frame2, text="Clear", command=lambda: self.clearContent(which_text)) #command=lambda: which_text.delete(1.0, tk.END))
+        clear_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+    def add_function_buttons_in_text1(self, which_win, which_text, pattern):
+        # 创建功能按钮的Frame（放在Text控件底部）
+        button_frame1 = ttk.Frame(which_text.master)
+        button_frame1.pack(side=tk.BOTTOM, fill=tk.X)
+
+        if pattern==1:
+            # 自定义功能
+            select_btn1 = ttk.Button(button_frame1, text="Screenshot",command=lambda: self.thread_it(self.start_region_selection1(self)))
+            select_btn1.pack(side=tk.LEFT, padx=2, pady=2)
+
+            select_btn2 = ttk.Button(button_frame1, text="Choice",command=lambda: self.thread_it(self.select_image_for_ocr_tk()))
+            select_btn2.pack(side=tk.LEFT, padx=2, pady=2)
+
+        # 创建功能按钮的Frame（放在Text控件底部）
+        button_frame2 = ttk.Frame(which_text.master)
+        button_frame2.pack(side=tk.BOTTOM, fill=tk.X)
+
+        # 复制按钮
+        copy_btn = ttk.Button(button_frame2, text="Copy", command=lambda: self.copy_content(which_text) ) #command=lambda: which_text.event_generate("<<Copy>>"))
+        copy_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        # 粘贴按钮
+        paste_btn = ttk.Button(button_frame2, text="Paste", command=lambda: self.paste(which_win, which_text)) #command=lambda: which_text.event_generate("<<Paste>>"))
+        paste_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        # 剪切按钮（可选）
+        cut_btn = ttk.Button(button_frame2, text="Cut", command=lambda: self.cut_content(which_text)) #command=lambda: which_text.event_generate("<<Cut>>"))
+        cut_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        # 清空按钮（自定义功能）
+        clear_btn = ttk.Button(button_frame2, text="Clear", command=lambda: self.clearContent(which_text)) #command=lambda: which_text.delete(1.0, tk.END))
+        clear_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
     def create_tools_sub_widgets3(self, sub_win):
         """创建图片OCR识别界面布局（左图右文）- 支持图片自适应填充"""
@@ -1621,6 +1739,8 @@ class SimplePostmanApp(tk.Tk):
         scrollbar = tk.Scrollbar(left_text_frame)
         self.left_text_output = tk.Text(left_text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
                                    font=('Consolas', 10), padx=5, pady=5)
+        # tk.Text内添加功能按钮
+        self.add_function_buttons_in_text(sub_win, self.left_text_output,1)
         scrollbar.config(command=self.left_text_output.yview)
 
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -1634,6 +1754,8 @@ class SimplePostmanApp(tk.Tk):
         scrollbar = tk.Scrollbar(right_text_frame)
         self.right_text_output = tk.Text(right_text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
                                    font=('Consolas', 10), padx=5, pady=5)
+        # tk.Text内添加功能按钮
+        self.add_function_buttons_in_text(sub_win, self.right_text_output,0)
         scrollbar.config(command=self.right_text_output.yview)
 
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -1648,37 +1770,37 @@ class SimplePostmanApp(tk.Tk):
         left_frame = tk.Frame(main_frame1)
         left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # --- 新增操作按钮组 ---
-        btn_group = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
-        btn_group.pack(fill=tk.X, pady=5)
+        # # --- 新增操作按钮组 ---
+        # btn_group = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
+        # btn_group.pack(fill=tk.X, pady=5)
 
-        # 执行按钮
-        ttk.Button(
-            btn_group, text="Execute",
-            command=lambda: self.combinateCommonOperation(sub_win,
-                                                          self.left_text_output,
-                                                          self.output_operation)
-        ).pack(side=tk.LEFT, padx=5)
+        # # 执行按钮
+        # ttk.Button(
+        #     btn_group, text="Execute",
+        #     command=lambda: self.combinateCommonOperation(sub_win,
+        #                                                   self.left_text_output,
+        #                                                   self.output_operation)
+        # ).pack(side=tk.LEFT, padx=5)
+        #
+        # # 操作类型选择
+        # self.output_operation = ttk.Combobox(
+        #     btn_group,
+        #     values=['Format', 'Copy', 'Paste', 'Clear'],
+        #     state='readonly'
+        # )
+        # self.output_operation.pack(side=tk.LEFT, padx=5, pady=2)
+        # self.output_operation.current(3)
 
-        # 操作类型选择
-        self.output_operation = ttk.Combobox(
-            btn_group,
-            values=['Format', 'Copy', 'Paste', 'Clear'],
-            state='readonly'
-        )
-        self.output_operation.pack(side=tk.LEFT, padx=5, pady=2)
-        self.output_operation.current(3)
 
 
-
-        # --- 提问按钮 ---
+        # --- 按钮 ---
         btn_group1 = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
         btn_group1.pack(fill=tk.X, pady=5)
 
-        # 提问按钮
-        ttk.Button(btn_group1, text="提问",command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini")).pack(side=tk.LEFT, padx=5)
+        # # 提问按钮
+        # ttk.Button(btn_group1, text="提问",command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini")).pack(side=tk.LEFT, padx=5)
 
-        ttk.Button(btn_group1, text="Select Records:",command=lambda: self.find_file_to_fill_QA_record(self.qa_record_combo,self.left_text_output, self.right_text_output)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_group1, text="Select QARecords:",command=lambda: self.find_file_to_fill_QA_record(self.qa_record_combo,self.left_text_output, self.right_text_output)).pack(side=tk.LEFT, padx=5)
         self.qa_record_combo = ttk.Combobox(btn_group1, state='readonly', width=30)
         self.qa_record_combo.pack(side=tk.LEFT, padx=5)
         ##绑定回调函数不传递额外参数##
@@ -1690,32 +1812,32 @@ class SimplePostmanApp(tk.Tk):
 
 
 
-        self.delete_qa_record_button = tk.Button(btn_group1, text="Delete Records", anchor='c',command=lambda: self.thread_it(self.delete_QA_records(self.qa_record_combo))).pack(side=tk.LEFT, padx=5)
+        self.delete_qa_record_button = tk.Button(btn_group1, text="Delete QARecords", anchor='c',command=lambda: self.thread_it(self.delete_QA_records(self.qa_record_combo))).pack(side=tk.LEFT, padx=5)
 
         # ===== 第二行右侧功能区域 =====
         right_frame = tk.Frame(main_frame1)
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        # --- 新增操作按钮组 ---
-        btn_group2 = tk.Frame(right_frame, bd=1, relief=tk.RAISED)
-        btn_group2.pack(fill=tk.X, pady=5)
+        # # --- 新增操作按钮组 ---
+        # btn_group2 = tk.Frame(right_frame, bd=1, relief=tk.RAISED)
+        # btn_group2.pack(fill=tk.X, pady=5)
 
-        # 操作类型选择
-        self.output_operation2 = ttk.Combobox(
-            btn_group2,
-            values=['Format', 'Copy', 'Paste', 'Clear'],
-            state='readonly'
-        )
-        self.output_operation2.pack(side=tk.RIGHT, padx=5, pady=2)
-        self.output_operation2.current(1)
-
-        # 执行按钮
-        ttk.Button(
-            btn_group2, text="Execute",
-            command=lambda: self.combinateCommonOperation(sub_win,
-                                                          self.right_text_output,
-                                                          self.output_operation2)
-        ).pack(side=tk.RIGHT, padx=5)
+        # # 操作类型选择
+        # self.output_operation2 = ttk.Combobox(
+        #     btn_group2,
+        #     values=['Format', 'Copy', 'Paste', 'Clear'],
+        #     state='readonly'
+        # )
+        # self.output_operation2.pack(side=tk.RIGHT, padx=5, pady=2)
+        # self.output_operation2.current(1)
+        #
+        # # 执行按钮
+        # ttk.Button(
+        #     btn_group2, text="Execute",
+        #     command=lambda: self.combinateCommonOperation(sub_win,
+        #                                                   self.right_text_output,
+        #                                                   self.output_operation2)
+        # ).pack(side=tk.RIGHT, padx=5)
 
         # ===== 底部按钮区域 =====
         btn_frame = tk.Frame(sub_win)
@@ -1737,11 +1859,11 @@ class SimplePostmanApp(tk.Tk):
 
         # 修改原按钮命令：调用load_image_to_label而非直接操作Label
 
-        select_btn1 = ttk.Button(btn_frame, text="截图提问", command=lambda: self.thread_it(self.start_region_selection(self)))
-        select_btn1.pack(side=tk.RIGHT)
-
-        select_btn2 = ttk.Button(btn_frame, text="选图提问", command=lambda: self.thread_it(self.select_image_for_ocr_qa()))
-        select_btn2.pack(side=tk.RIGHT)
+        # select_btn1 = ttk.Button(btn_frame, text="截图提问", command=lambda: self.thread_it(self.start_region_selection(self)))
+        # select_btn1.pack(side=tk.RIGHT)
+        #
+        # select_btn2 = ttk.Button(btn_frame, text="选图提问", command=lambda: self.thread_it(self.select_image_for_ocr_qa()))
+        # select_btn2.pack(side=tk.RIGHT)
 
         select_btn3 = ttk.Button(btn_frame, text="插入话术", command=lambda: self.thread_it(self.insert_content_in_text(self.left_text_output,self.lang_combo1.get())))
         select_btn3.pack(side=tk.LEFT)
@@ -1775,7 +1897,37 @@ class SimplePostmanApp(tk.Tk):
             self.region_window.winfo_screenwidth() // 2,
             30,
             text="拖动鼠标选择区域 (ESC取消)",
-            fill="white",
+            fill="black",
+            font=('微软雅黑', 16)
+        )
+
+    def start_region_selection1(self,whichWin):
+        """启动区域选择模式"""
+        whichWin.withdraw()  # 隐藏窗口
+
+        # 创建全屏透明窗口用于区域选择
+        self.region_window = Toplevel()
+        self.region_window.attributes('-fullscreen', True)
+        self.region_window.attributes('-alpha', 0.3)
+        self.region_window.attributes('-topmost', True)
+        self.region_window.configure(bg='black')
+
+        # 创建画布
+        self.canvas = Canvas(self.region_window, cursor="cross", bg='black', highlightthickness=0)
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        # 绑定鼠标事件
+        self.canvas.bind("<ButtonPress-1>", self.on_press)
+        self.canvas.bind("<B1-Motion>", self.on_drag)
+        self.canvas.bind("<ButtonRelease-1>", self.on_release1)
+        self.region_window.bind("<Escape>", self.cancel_selection)
+
+        # 提示文本
+        self.canvas.create_text(
+            self.region_window.winfo_screenwidth() // 2,
+            30,
+            text="拖动鼠标选择区域 (ESC取消)",
+            fill="black",
             font=('微软雅黑', 16)
         )
 
@@ -1820,6 +1972,27 @@ class SimplePostmanApp(tk.Tk):
 
         # 短暂延迟确保窗口关闭
         self.after(100, lambda: self.capture_region(x1, y1, x2, y2))
+
+    def on_release1(self, event):
+        """鼠标释放事件"""
+        if not self.rect:
+            return
+
+        # 获取选择的区域坐标
+        x1, y1, x2, y2 = self.canvas.coords(self.rect)
+        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+
+        # 确保坐标有效
+        if abs(x2 - x1) < 10 or abs(y2 - y1) < 10:
+            self.cancel_selection()
+            return
+
+            # 关闭选择窗口
+        self.region_window.destroy()
+        self.region_window = None
+
+        # 短暂延迟确保窗口关闭
+        self.after(100, lambda: self.capture_region1(x1, y1, x2, y2))
 
     def cancel_selection(self, event=None):
         """取消选择"""
@@ -1878,13 +2051,79 @@ class SimplePostmanApp(tk.Tk):
                 photo = ImageTk.PhotoImage(resized_image)
 
                 # 4. 插入文字和图片并保持引用
-                self.left_text_output.insert("end", "")  # 插入文字
-                self.left_text_output.image_create("end", image=photo)  # 在末尾插入图片
+                #self.clearContent(self.left_text_output)
+                #self.left_text_output.insert("end", " ")  # 插入文字
+                self.left_text_output.image_create("end-1c", image=photo)  # 在末尾插入图片，"end-1c"删除前导换行符
                 self.left_text_output.insert("end", "\n")  # 继续插入文字
                 self.left_text_output.image = photo  # 防止被垃圾回收
 
             #截图识别
             self.select_image_for_ocr_qa1(file_path)
+
+            self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
+
+        except Exception as e:
+            tk.messagebox.showerror(" 错误", f"截图失败: {str(e)}")
+            self.deiconify()
+
+    def capture_region1(self, x1, y1, x2, y2):
+        """捕获选定区域"""
+        try:
+            # 调整坐标确保左上角到右下角
+            if x1 > x2:
+                x1, x2 = x2, x1
+            if y1 > y2:
+                y1, y2 = y2, y1
+
+            # 截图
+            self.screenshot = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+
+            # # 显示预览窗口
+            # self.show_preview()
+
+            # 生成带时间戳的文件名
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            default_filename = f"区域截图_{timestamp}.png"
+            # 保存截图
+            file_path = f'{current_script_path}/{screenshotFileName}/{default_filename}'
+            self.screenshot.save(file_path)
+
+
+            if os.path.exists(file_path):
+                print(file_path)
+                # # 加载图片（需替换为实际路径）
+                # image = Image.open(file_path)
+                # photo = ImageTk.PhotoImage(image)
+                # # 插入文字和图片
+                # #self.left_text_output.insert("end", "文字部分1\n")
+                # self.left_text_output.image_create("end", image=photo)  # 在末尾插入图片
+                # #self.left_text_output.insert("end", "\n文字部分2\n")  # 继续插入文字
+                # # 保持图片引用
+                # self.left_text_output.image = photo
+
+                # 1. 打开图片并获取控件宽度
+                image = Image.open(file_path)
+                widget_width = self.left_img_output.winfo_width() - 20  # 预留边距
+
+                # 2. 计算缩放比例（保持宽高比）
+                if widget_width < 1:  # 避免初始宽度为0
+                    widget_width = 300  # 默认宽度
+                ratio = widget_width / image.width
+                new_height = int(image.height * ratio)
+
+                # 3. 缩放图片
+                resized_image = image.resize((widget_width, new_height), Image.LANCZOS)
+                photo = ImageTk.PhotoImage(resized_image)
+
+                # 4. 插入文字和图片并保持引用
+                #self.clearContent(self.left_text_output)
+                #self.left_text_output.insert("end", " ")  # 插入文字
+                self.left_img_output.image_create("end-1c", image=photo)  # 在末尾插入图片，"end-1c"删除前导换行符
+                self.left_img_output.insert("end", "\n")  # 继续插入文字
+                self.left_img_output.image = photo  # 防止被垃圾回收
+
+            #截图识别
+            self.select_image_for_ocr_tk1(file_path)
 
             # self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
 
@@ -2456,6 +2695,15 @@ class SimplePostmanApp(tk.Tk):
         self.clipboard_clear()
         self.clipboard_append(input_content)  # 显示复制成功的消息《可选》
         print("内容已复制到剪贴板。")  # messagebox.showinfo(input_content)
+        self.messageInformInWin(input_content, 2800)
+        time.sleep(2)
+
+    def cut_content(self, which_text):  # 剪切输入框的内容
+        input_content = which_text.get("1.0", "end-1c")  # 将内容复制到剪贴板
+        self.clearContent(which_text)
+        self.clipboard_clear()
+        self.clipboard_append(input_content)  # 显示复制成功的消息《可选》
+        print("内容已剪切到剪贴板。")  # messagebox.showinfo(input_content)
         self.messageInformInWin(input_content, 2800)
         time.sleep(2)
 
