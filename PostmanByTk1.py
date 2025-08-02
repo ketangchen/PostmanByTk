@@ -35,6 +35,11 @@ import numpy as np
 from paddleocr import PaddleOCR
 import openai  # /usr/local/bin/python3.7 -m pip install openai -i https://pypi.tuna.tsinghua.edu.cn/simple
 
+"""
+/usr/local/bin/python3.7 -m pip install yourmodel -i https://pypi.tuna.tsinghua.edu.cn/simple
+/usr/local/bin/python3.7 -m pip install pyaudio -i https://pypi.tuna.tsinghua.edu.cn/simple
+"""
+
 import tkinter as tk
 from tkinter import Canvas, Toplevel
 from PIL import ImageGrab, ImageTk
@@ -1388,29 +1393,14 @@ class SimplePostmanApp(tk.Tk):
         img_frame = tk.Frame(main_frame, bd=2, relief=tk.SUNKEN)
         img_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        self.img_label = tk.Label(img_frame, text="图片预览区域", bg='#f0f0f0')
-        self.img_label.pack(fill=tk.BOTH, expand=True) # tk.BOTH
+        scrollbar = tk.Scrollbar(img_frame)
+        self.left_img_output = tk.Text(img_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
+                                        font=('Consolas', 10), padx=5, pady=5)
+        scrollbar.config(command=self.left_img_output.yview)
 
-        # --- 图片自适应逻辑 ---
-        def load_image_to_label(image_path):
-            """加载图片并自适应填充Label"""
-            try:
-                # 1. 用PIL打开图片并保存原始对象
-                self.original_image = Image.open(image_path)
-                # 2. 立即更新显示（处理初始加载）
-                self.update_image_display()
-            except Exception as e:
-                self.img_label.config(text=f"  图片加载失败: {str(e)}", image='')
-
-        def update_image_display(event=None):
-            """动态调整图片尺寸以适应Label（强制填满区域，允许裁剪）"""
-            if hasattr(self, 'original_image'):
-                # 获取Label当前有效尺寸
-                label_width = max(1, self.img_label.winfo_width())
-                label_height = max(1, self.img_label.winfo_height())
-
-        # 绑定Label尺寸变化事件
-        self.img_label.bind("<Configure>", update_image_display)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.left_img_output.pack(fill=tk.BOTH, expand=True)
+        self.left_img_output.insert(tk.END, "在这里插入要识别的图片...\n")
 
         # ===== 右侧功能区域 =====
         right_frame = tk.Frame(main_frame)
@@ -1420,12 +1410,12 @@ class SimplePostmanApp(tk.Tk):
         text_frame = tk.Frame(main_frame)
         text_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        scrollbar = tk.Scrollbar(text_frame)
-        self.text_output = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
+        scrollbar1 = tk.Scrollbar(text_frame)
+        self.text_output = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar1.set,
                                    font=('Consolas', 10), padx=5, pady=5)
-        scrollbar.config(command=self.text_output.yview)
+        scrollbar1.config(command=self.text_output.yview)
 
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        scrollbar1.pack(side=tk.RIGHT, fill=tk.Y)
         self.text_output.pack(fill=tk.BOTH, expand=True)
         self.text_output.insert(tk.END, "OCR识别结果将显示在这里...")
 
@@ -1466,7 +1456,7 @@ class SimplePostmanApp(tk.Tk):
 
         # 修改原按钮命令：调用load_image_to_label而非直接操作Label
         select_btn = ttk.Button(btn_frame, text="选择图片",
-                                command=lambda: self.select_image_for_ocr_tk())
+                                command=lambda: self.thread_it(self.select_image_for_ocr_tk()))
         select_btn.pack(side=tk.RIGHT)
 
     def select_image_for_ocr_tk(self):
@@ -1476,22 +1466,35 @@ class SimplePostmanApp(tk.Tk):
             filetypes=[("图片文件", "*.png *.jpg *.jpeg *.bmp")]
         )
 
-        if img_path:
+        if os.path.exists(img_path):
+            print(f'img_path is:{img_path}')
             try:
-                # 显示图片
-                img = Image.open(img_path)
-                img.thumbnail((400, 400))  # 限制显示大小
-                photo = ImageTk.PhotoImage(img)
-
-                self.img_label.config(image=photo)
-                self.img_label.image = photo  # 保持引用
-
                 # 调用OCR识别  param lang must in dict_keys(['ch', 'en', 'korean', 'japan', 'chinese_cht', 'ta', 'te', 'ka', 'latin', 'arabic', 'cyrillic', 'devanagari']), but got chi_sim
                 lang_map = {"中文": "ch", "英文": "en",
                             "日文": "japan", "韩文": "korean", "阿拉伯文": "arabic"}
                 selected_lang = self.lang_combo.get()
                 lang = lang_map[selected_lang]
                 pattern = self.lang_combo1.get()
+
+                # 1. 打开图片并获取控件宽度
+                image = Image.open(img_path)
+                widget_width = self.left_img_output.winfo_width() - 20  # 预留边距
+
+                # 2. 计算缩放比例（保持宽高比）
+                if widget_width < 1:  # 避免初始宽度为0
+                    widget_width = 300  # 默认宽度
+                ratio = widget_width / image.width
+                new_height = int(image.height * ratio)
+
+                # 3. 缩放图片
+                resized_image = image.resize((widget_width, new_height), Image.LANCZOS)
+                photo = ImageTk.PhotoImage(resized_image)
+
+                # 4. 插入文字和图片并保持引用
+                self.left_img_output.insert("end", "")  # 插入文字
+                self.left_img_output.image_create("end", image=photo)  # 在末尾插入图片
+                self.left_img_output.insert("end", "\n")  # 继续插入文字
+                self.left_img_output.image = photo  # 防止被垃圾回收
 
                 # 调用OCR方法
                 self.seeImgToTxtByPaddleOcr(self.text_output, img_path, lang, pattern)
@@ -1522,12 +1525,42 @@ class SimplePostmanApp(tk.Tk):
                 selected_lang = self.lang_combo.get()
                 lang = lang_map[selected_lang]
 
+                # image = Image.open(img_path)
+                # photo = ImageTk.PhotoImage(image)
+                # # 插入文字和图片
+                # self.left_text_output.insert("end", "")# 插入文字
+                # self.left_text_output.image_create("end", image=photo)  # 在末尾插入图片
+                # self.left_text_output.insert("end", "\n")  # 继续插入文字
+                # # 保持图片引用
+                # self.left_text_output.image = photo
+
+                # 1. 打开图片并获取控件宽度
+                image = Image.open(img_path)
+                widget_width = self.left_text_output.winfo_width() - 20  # 预留边距
+
+                # 2. 计算缩放比例（保持宽高比）
+                if widget_width < 1:  # 避免初始宽度为0
+                    widget_width = 300  # 默认宽度
+                ratio = widget_width / image.width
+                new_height = int(image.height * ratio)
+
+                # 3. 缩放图片
+                resized_image = image.resize((widget_width, new_height), Image.LANCZOS)
+                photo = ImageTk.PhotoImage(resized_image)
+
+                # 4. 插入文字和图片并保持引用
+                self.left_text_output.insert("end", "")# 插入文字
+                self.left_text_output.image_create("end", image=photo)  # 在末尾插入图片
+                self.left_text_output.insert("end", "\n")  # 继续插入文字
+                self.left_text_output.image = photo  # 防止被垃圾回收
+
                 # 调用OCR方法
                 self.seeImgToTxtByPaddleOcr1(self.left_text_output, img_path, lang, 1)
 
                 self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
 
                 #save_qa_data(self.left_text_output.get("1.0", "end-1c"), self.right_text_output.get("1.0", "end-1c"))
+
 
             except Exception as e:
                 messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
@@ -1540,6 +1573,26 @@ class SimplePostmanApp(tk.Tk):
                             "日文": "japan", "韩文": "korean", "阿拉伯文": "arabic"}
                 selected_lang = self.lang_combo.get()
                 lang = lang_map[selected_lang]
+
+                # 1. 打开图片并获取控件宽度
+                image = Image.open(img_path)
+                widget_width = self.left_text_output.winfo_width() - 20  # 预留边距
+
+                # 2. 计算缩放比例（保持宽高比）
+                if widget_width < 1:  # 避免初始宽度为0
+                    widget_width = 300  # 默认宽度
+                ratio = widget_width / image.width
+                new_height = int(image.height * ratio)
+
+                # 3. 缩放图片
+                resized_image = image.resize((widget_width, new_height), Image.LANCZOS)
+                photo = ImageTk.PhotoImage(resized_image)
+
+                # 4. 插入文字和图片并保持引用
+                self.left_text_output.insert("end", "")  # 插入文字
+                self.left_text_output.image_create("end", image=photo)  # 在末尾插入图片
+                self.left_text_output.insert("end", "\n")  # 继续插入文字
+                self.left_text_output.image = photo  # 防止被垃圾回收
 
                 # 调用OCR方法
                 self.seeImgToTxtByPaddleOcr1(self.left_text_output, img_path, lang,1)
@@ -1599,15 +1652,6 @@ class SimplePostmanApp(tk.Tk):
         btn_group = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
         btn_group.pack(fill=tk.X, pady=5)
 
-        # 操作类型选择
-        self.output_operation = ttk.Combobox(
-            btn_group,
-            values=['Format', 'Copy', 'Paste', 'Clear'],
-            state='readonly'
-        )
-        self.output_operation.pack(side=tk.LEFT, padx=5, pady=2)
-        self.output_operation.current(2)
-
         # 执行按钮
         ttk.Button(
             btn_group, text="Execute",
@@ -1615,6 +1659,17 @@ class SimplePostmanApp(tk.Tk):
                                                           self.left_text_output,
                                                           self.output_operation)
         ).pack(side=tk.LEFT, padx=5)
+
+        # 操作类型选择
+        self.output_operation = ttk.Combobox(
+            btn_group,
+            values=['Format', 'Copy', 'Paste', 'Clear'],
+            state='readonly'
+        )
+        self.output_operation.pack(side=tk.LEFT, padx=5, pady=2)
+        self.output_operation.current(3)
+
+
 
         # --- 提问按钮 ---
         btn_group1 = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
@@ -1672,7 +1727,8 @@ class SimplePostmanApp(tk.Tk):
         self.lang_combo.current(0)
 
         tk.Label(btn_frame, text="常用提问话术:").pack(side=tk.LEFT, padx=(0, 5))
-        self.lang_combo1 = ttk.Combobox(btn_frame, values=["，请结合通俗易懂的例子讲解下", "", ""])
+        conversationsList=find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')),  "conversation")
+        self.lang_combo1 = ttk.Combobox(btn_frame, values=conversationsList)
         self.lang_combo1.pack(side=tk.LEFT, padx=(0, 10))
         self.lang_combo1.current(0)
 
@@ -1681,21 +1737,21 @@ class SimplePostmanApp(tk.Tk):
 
         # 修改原按钮命令：调用load_image_to_label而非直接操作Label
 
-        select_btn1 = ttk.Button(btn_frame, text="截图提问", command=lambda: self.start_region_selection())
+        select_btn1 = ttk.Button(btn_frame, text="截图提问", command=lambda: self.thread_it(self.start_region_selection(self)))
         select_btn1.pack(side=tk.RIGHT)
 
-        select_btn2 = ttk.Button(btn_frame, text="选图提问", command=lambda: self.select_image_for_ocr_qa())
+        select_btn2 = ttk.Button(btn_frame, text="选图提问", command=lambda: self.thread_it(self.select_image_for_ocr_qa()))
         select_btn2.pack(side=tk.RIGHT)
 
-        select_btn3 = ttk.Button(btn_frame, text="插入话术", command=lambda: self.insert_content_in_text(self.left_text_output,self.lang_combo1.get()))
+        select_btn3 = ttk.Button(btn_frame, text="插入话术", command=lambda: self.thread_it(self.insert_content_in_text(self.left_text_output,self.lang_combo1.get())))
         select_btn3.pack(side=tk.LEFT)
 
     def insert_content_in_text(self,which_text,content):
         which_text.insert(tk.END,content)
 
-    def start_region_selection(self):
+    def start_region_selection(self,whichWin):
         """启动区域选择模式"""
-        self.withdraw()  # 隐藏主窗口
+        whichWin.withdraw()  # 隐藏窗口
 
         # 创建全屏透明窗口用于区域选择
         self.region_window = Toplevel()
