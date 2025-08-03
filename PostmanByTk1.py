@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: gbk -*-
 import tkinter as tk  # /usr/local/bin/python3.7 pip -m install treelib  -i https://pypi.tuna.tsinghua.edu.cn/simple
 from tkinter import ttk, scrolledtext  # D:\Python\Python37\python.exe pip install pillow  -i https://pypi.tuna.tsinghua.edu.cn/simple
 import requests
@@ -616,12 +616,12 @@ class SimplePostmanApp(tk.Tk):
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         # 设置坐标
-        x = (screen_width - 900) // 2
-        y = (screen_height - 800) // 2
+        x = (screen_width - 950) // 2
+        y = (screen_height - 775) // 2
         # 设置应用名
         self.title("simplepostman1.0")
         # 设置展示位置
-        self.geometry(f"{900}x{800}+{x}+{y}")
+        self.geometry(f"{950}x{775}+{x}+{y-50}")
 
         # 设置窗口自适应
         self.grid_columnconfigure(1, weight=1)
@@ -969,15 +969,17 @@ class SimplePostmanApp(tk.Tk):
 
         self.headers_text = scrolledtext.ScrolledText(self, width=45, height=10, bg="lightskyblue")
         self.headers_text.grid(column=1, row=2, rowspan=2, sticky='NSEW')
+        # scrolledtext.ScrolledText内添加功能按钮
+        self.add_function_buttons_in_request_text(self, self.headers_text, 1)
 
-        self.headers_operation_combobox = ttk.Combobox(self, values=['Format', 'Copy', 'Paste', 'Clear'],
-                                                       state='readonly')  # 组件按钮格式化功能
-        self.headers_operation_combobox.grid(column=2, row=2)
-        self.headers_operation_combobox.current(0)
-        self.operation_headers_button = ttk.Button(self, text="Do",
-                                                   command=lambda: self.combinateCommonOperation(self,self.headers_text,
-                                                                                                 self.headers_operation_combobox))  # 组件按钮格式化功能
-        self.operation_headers_button.grid(column=3, row=2)
+        # self.headers_operation_combobox = ttk.Combobox(self, values=['Format', 'Copy', 'Paste', 'Clear'],
+        #                                                state='readonly')  # 组件按钮格式化功能
+        # self.headers_operation_combobox.grid(column=2, row=2)
+        # self.headers_operation_combobox.current(0)
+        # self.operation_headers_button = ttk.Button(self, text="Do",
+        #                                            command=lambda: self.combinateCommonOperation(self,self.headers_text,
+        #                                                                                          self.headers_operation_combobox))  # 组件按钮格式化功能
+        # self.operation_headers_button.grid(column=3, row=2)
 
         # self.format_headers_button = ttk.Button(self, text="Format Headers", command=lambda:self.format_content(self.headers_text))# 组件按钮格式化功能
         # self.format_headers_button.grid(column=2, row=2)
@@ -999,15 +1001,17 @@ class SimplePostmanApp(tk.Tk):
 
         self.body_text = scrolledtext.ScrolledText(self, width=45, height=15, bg="lightskyblue")
         self.body_text.grid(column=1, row=4, rowspan=2, sticky='NSEW')
+        # scrolledtext.ScrolledText内添加功能按钮
+        self.add_function_buttons_in_request_text(self, self.body_text, 1)
 
-        self.body_operation_combobox = ttk.Combobox(self, values=['Format', 'Copy', 'Paste', 'Clear'],
-                                                    state='readonly')  # 组件按钮格式化功能
-        self.body_operation_combobox.grid(column=2, row=4)
-        self.body_operation_combobox.current(0)
-        self.operation_body_button = ttk.Button(self, text="Do",
-                                                command=lambda: self.combinateCommonOperation(self, self.body_text,
-                                                                                              self.body_operation_combobox))  # 组件按钮格式化功能
-        self.operation_body_button.grid(column=3, row=4)
+        # self.body_operation_combobox = ttk.Combobox(self, values=['Format', 'Copy', 'Paste', 'Clear'],
+        #                                             state='readonly')  # 组件按钮格式化功能
+        # self.body_operation_combobox.grid(column=2, row=4)
+        # self.body_operation_combobox.current(0)
+        # self.operation_body_button = ttk.Button(self, text="Do",
+        #                                         command=lambda: self.combinateCommonOperation(self, self.body_text,
+        #                                                                                       self.body_operation_combobox))  # 组件按钮格式化功能
+        # self.operation_body_button.grid(column=3, row=4)
 
         # self.fommat_body_button = ttk.Button(self, text="Format Body", command=lambda:self.format_content(self.body_text)) # 组件按钮格式化功能
         # self.fommat_body_button.grid(column=2,row=4)
@@ -1043,11 +1047,11 @@ class SimplePostmanApp(tk.Tk):
         self.select_key_btn = tk.Button(self, text="CopyResKey", anchor="c",
                                         command=lambda: self.copy_value_of_key(self, self.response_text,
                                                                                self.select_key_combobox.get()))
-        self.select_key_btn.grid(column=2, row=7)
+        self.select_key_btn.grid(column=2, row=8)
 
         # 设置关键字输入框
         self.select_key_combobox = ttk.Combobox(self, state="NORMAL")
-        self.select_key_combobox.grid(column=3, row=7, sticky='EW')
+        self.select_key_combobox.grid(column=3, row=8, sticky='EW')
         self.select_key_combobox["values"] = ['reportNo']
         self.select_key_combobox["values"] = find_value_in_nested_dict(
             read_json_file(f'{current_script_path}/configini.json'), "CopyKey")
@@ -1056,7 +1060,7 @@ class SimplePostmanApp(tk.Tk):
         self.refresh_response_text_key_button = ttk.Button(self, text="RefreshKey",
                                                            command=lambda: self.refreshKey(self.response_text,
                                                                                            self.select_key_combobox))
-        self.refresh_response_text_key_button.grid(column=2, row=6)
+        self.refresh_response_text_key_button.grid(column=2, row=7)
 
         # Response响应输出
         self.response_label = ttk.Label(self, text="Response (JSON):")
@@ -1064,15 +1068,17 @@ class SimplePostmanApp(tk.Tk):
 
         self.response_text = scrolledtext.ScrolledText(self, width=45, height=30, bg="lightskyblue")
         self.response_text.grid(column=1, row=7, rowspan=13, sticky='NSEW')  # ,columnspan=3
+        # scrolledtext.ScrolledText内添加功能按钮
+        self.add_function_buttons_in_request_text(self, self.response_text, 1)
 
-        self.response_operation_combobox = ttk.Combobox(self, values=['Format', 'Copy', 'Paste', 'Clear'],
-                                                        state='readonly')  # 组件按钮格式化功能
-        self.response_operation_combobox.grid(column=2, row=8)
-        self.response_operation_combobox.current(3)
-        self.operation_response_button = ttk.Button(self, text="Do", command=lambda: self.combinateCommonOperation(self,
-                                                                                                                   self.response_text,
-                                                                                                                   self.response_operation_combobox))  # 组件按钮格式化功能
-        self.operation_response_button.grid(column=3, row=8)
+        # self.response_operation_combobox = ttk.Combobox(self, values=['Format', 'Copy', 'Paste', 'Clear'],
+        #                                                 state='readonly')  # 组件按钮格式化功能
+        # self.response_operation_combobox.grid(column=2, row=8)
+        # self.response_operation_combobox.current(3)
+        # self.operation_response_button = ttk.Button(self, text="Do", command=lambda: self.combinateCommonOperation(self,
+        #                                                                                                            self.response_text,
+        #                                                                                                            self.response_operation_combobox))  # 组件按钮格式化功能
+        # self.operation_response_button.grid(column=3, row=8)
 
         # self.format_response_button = tk.Button(self, text='Format Response', anchor='c', command=lambda: self.format_content(self.response_text))  # 组件按钮格式化功能
         # self.format_response_button.grid(column=2,row=8)
@@ -1242,6 +1248,8 @@ class SimplePostmanApp(tk.Tk):
     def create_tools_sub_widgets(self, sub_win):
         sub_win.output_text = scrolledtext.ScrolledText(sub_win, width=30, height=20, bg="lightskyblue")
         sub_win.output_text.grid(column=0, row=0, rowspan=15, sticky='NSEW')
+        # scrolledtext.ScrolledText内添加功能按钮
+        self.add_function_buttons_in_request_text(sub_win, sub_win.output_text, 1)
 
         sub_win.getHtmlData_button = tk.Button(sub_win, text="GetHtmlData", anchor="c", command=lambda: self.thread_it(
             self.getHtmlData(sub_win.output_text, sub_win.output_text.get("1.0", "end-1c"))))
@@ -1280,15 +1288,15 @@ class SimplePostmanApp(tk.Tk):
             '123']  # find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')),"CopyKey")
         sub_win.select_key_combobox1.current(0)  # 设置默认值为列表中的第一个元素
 
-        sub_win.output_operation_combobox = ttk.Combobox(sub_win, values=['Format', 'Copy', 'Paste', 'Clear'],
-                                                         state='readonly')  # 组件按钮格式化功能
-        sub_win.output_operation_combobox.grid(column=1, row=5)
-        sub_win.output_operation_combobox.current(0)
-        sub_win.operation_output_button = ttk.Button(sub_win, text="Do",
-                                                     command=lambda: self.combinateCommonOperation(sub_win,
-                                                                                                   sub_win.output_text,
-                                                                                                   sub_win.output_operation_combobox))  # 组件按钮格式化功能
-        sub_win.operation_output_button.grid(column=2, row=5)
+        # sub_win.output_operation_combobox = ttk.Combobox(sub_win, values=['Format', 'Copy', 'Paste', 'Clear'],
+        #                                                  state='readonly')  # 组件按钮格式化功能
+        # sub_win.output_operation_combobox.grid(column=1, row=5)
+        # sub_win.output_operation_combobox.current(0)
+        # sub_win.operation_output_button = ttk.Button(sub_win, text="Do",
+        #                                              command=lambda: self.combinateCommonOperation(sub_win,
+        #                                                                                            sub_win.output_text,
+        #                                                                                            sub_win.output_operation_combobox))  # 组件按钮格式化功能
+        # sub_win.operation_output_button.grid(column=2, row=5)
 
         # # Format格式化json展示
         # sub_win.format_btn = ttk.Button(sub_win, text="Format", command=lambda: self.format_content(sub_win.outout_text))
@@ -1397,7 +1405,7 @@ class SimplePostmanApp(tk.Tk):
         self.left_img_output = tk.Text(img_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
                                         font=('Consolas', 10), padx=5, pady=5)
         # tk.Text内添加功能按钮
-        self.add_function_buttons_in_text1(sub_win, self.left_img_output,1)
+        self.add_function_buttons_in_img_text(sub_win, self.left_img_output, 1)
         scrollbar.config(command=self.left_img_output.yview)
 
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -1416,7 +1424,7 @@ class SimplePostmanApp(tk.Tk):
         self.text_output = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar1.set,
                                    font=('Consolas', 10), padx=5, pady=5)
         # tk.Text内添加功能按钮
-        self.add_function_buttons_in_text1(sub_win, self.text_output,0)
+        self.add_function_buttons_in_img_text(sub_win, self.text_output, 0)
         scrollbar1.config(command=self.text_output.yview)
 
         scrollbar1.pack(side=tk.RIGHT, fill=tk.Y)
@@ -1657,7 +1665,7 @@ class SimplePostmanApp(tk.Tk):
         max_len = max(len(x) for x in which_combobox['values'])
         which_combobox.configure(width=max_len + 2)  # 增加额外边距
 
-    def add_function_buttons_in_text(self, which_win, which_text, pattern):
+    def add_function_buttons_in_qa_text(self, which_win, which_text, pattern):
         # 创建功能按钮的Frame（放在Text控件底部）
         button_frame1 = ttk.Frame(which_text.master)
         button_frame1.pack(side=tk.BOTTOM, fill=tk.X)
@@ -1693,7 +1701,7 @@ class SimplePostmanApp(tk.Tk):
         clear_btn = ttk.Button(button_frame2, text="Clear", command=lambda: self.clearContent(which_text)) #command=lambda: which_text.delete(1.0, tk.END))
         clear_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
-    def add_function_buttons_in_text1(self, which_win, which_text, pattern):
+    def add_function_buttons_in_img_text(self, which_win, which_text, pattern):
         # 创建功能按钮的Frame（放在Text控件底部）
         button_frame1 = ttk.Frame(which_text.master)
         button_frame1.pack(side=tk.BOTTOM, fill=tk.X)
@@ -1726,6 +1734,45 @@ class SimplePostmanApp(tk.Tk):
         clear_btn = ttk.Button(button_frame2, text="Clear", command=lambda: self.clearContent(which_text)) #command=lambda: which_text.delete(1.0, tk.END))
         clear_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
+
+
+    def add_function_buttons_in_request_text(self, which_win, which_text, pattern=1):
+        # 创建功能按钮的Frame（放在Text控件底部）
+        button_frame1 = ttk.Frame(which_text.master, width=100)
+        button_frame1.pack(side=tk.TOP, fill=tk.X)
+        if pattern == 1:
+            # 格式化json
+            question_btn = ttk.Button(button_frame1, text="Format", command=lambda: self.thread_it(
+                self.format_content(which_text)))  # command=lambda: which_text.delete(1.0, tk.END))
+            question_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        button_frame2 = ttk.Frame(which_text.master)
+        button_frame2.pack(side=tk.TOP, fill=tk.X)
+        # 复制按钮
+        copy_btn = ttk.Button(button_frame2, text="Copy", command=lambda: self.copy_content(
+            which_text))  # command=lambda: which_text.event_generate("<<Copy>>"))
+        copy_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        button_frame3 = ttk.Frame(which_text.master)
+        button_frame3.pack(side=tk.TOP, fill=tk.X)
+        # 粘贴按钮
+        paste_btn = ttk.Button(button_frame3, text="Paste", command=lambda: self.paste(which_win, which_text)) #command=lambda: which_text.event_generate("<<Paste>>"))
+        paste_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        button_frame4 = ttk.Frame(which_text.master)
+        button_frame4.pack(side=tk.TOP, fill=tk.X)
+        # 剪切按钮（可选）
+        cut_btn = ttk.Button(button_frame4, text="Cut", command=lambda: self.cut_content(
+            which_text))  # command=lambda: which_text.event_generate("<<Cut>>"))
+        cut_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        button_frame5 = ttk.Frame(which_text.master)
+        button_frame5.pack(side=tk.TOP, fill=tk.X)
+        # 清空按钮（自定义功能）
+        clear_btn = ttk.Button(button_frame5, text="Clear", command=lambda: self.clearContent(
+            which_text))  # command=lambda: which_text.delete(1.0, tk.END))
+        clear_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
     def create_tools_sub_widgets3(self, sub_win):
         """创建图片OCR识别界面布局（左图右文）- 支持图片自适应填充"""
         # --- 第一行主框架 ---
@@ -1740,7 +1787,7 @@ class SimplePostmanApp(tk.Tk):
         self.left_text_output = tk.Text(left_text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
                                    font=('Consolas', 10), padx=5, pady=5)
         # tk.Text内添加功能按钮
-        self.add_function_buttons_in_text(sub_win, self.left_text_output,1)
+        self.add_function_buttons_in_qa_text(sub_win, self.left_text_output, 1)
         scrollbar.config(command=self.left_text_output.yview)
 
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -1755,7 +1802,7 @@ class SimplePostmanApp(tk.Tk):
         self.right_text_output = tk.Text(right_text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
                                    font=('Consolas', 10), padx=5, pady=5)
         # tk.Text内添加功能按钮
-        self.add_function_buttons_in_text(sub_win, self.right_text_output,0)
+        self.add_function_buttons_in_qa_text(sub_win, self.right_text_output, 0)
         scrollbar.config(command=self.right_text_output.yview)
 
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -1903,7 +1950,7 @@ class SimplePostmanApp(tk.Tk):
 
     def start_region_selection1(self,whichWin):
         """启动区域选择模式"""
-        whichWin.withdraw()  # 隐藏窗口
+        #whichWin.withdraw()  # 隐藏窗口
 
         # 创建全屏透明窗口用于区域选择
         self.region_window = Toplevel()
