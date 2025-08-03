@@ -37,7 +37,7 @@ import openai  # /usr/local/bin/python3.7 -m pip install openai -i https://pypi.
 
 """
 /usr/local/bin/python3.7 -m pip install yourmodel -i https://pypi.tuna.tsinghua.edu.cn/simple
-/usr/local/bin/python3.7 -m pip install pyaudio -i https://pypi.tuna.tsinghua.edu.cn/simple
+/usr/local/bin/python3.7 -m pip install py2app -i https://pypi.tuna.tsinghua.edu.cn/simple
 """
 
 import tkinter as tk
@@ -3062,8 +3062,7 @@ pip show pyinstaller--看pyinstaller安装在哪里
 /opt/homebrew/bin/python3.12 -m pip install pyinstaller--指定版本安装
 pip3.7 show pyinstaller--检查是否安装成功 
 
-#pyinstaller --onefile --windowed aboutPostman.py
-<<<<<<< HEAD
+# PyInstaller --onefile --windowed /Users/ketangchen/Documents/UiAutoOfApp20240703/UiAutoOfApp/utils/PostmanByTk1.py
 python3.7 -m PyInstaller --onefile --windowed /Users/ketangchen/Documents/UiAutoOfApp20240703/UiAutoOfApp/utils/PostmanByTk1.py ##重点看python3.7这里，python3.7下安装了PyInstaller
 
 #dist路径
@@ -3079,13 +3078,12 @@ create-dmg \
 
 
 未能打开磁盘映像
-
-/usr/local/bin/python3.7 -m pip install Pillow   -i https://pypi.tuna.tsinghua.edu.cn/simple
 pip3 install scholarly  -i https://pypi.tuna.tsinghua.edu.cn/simple
+/usr/local/bin/python3.7 -m pip install pyinstaller -i https://pypi.tuna.tsinghua.edu.cn/simple
+/usr/local/bin/python3.7 -m pip install --upgrade pyinstaller -i https://pypi.tuna.tsinghua.edu.cn/simple
 =======
-python3.7 -m PyInstaller --onefile --windowed aboutPostman.py ##重点看python3.7这里，python3.7下安装了PyInstaller
+python3.7 -m PyInstaller --onefile --windowed /Users/ketangchen/Documents/UiAutoOfApp20240703/UiAutoOfApp/utils/PostmanByTk1.py ##重点看python3.7这里，python3.7下安装了PyInstaller
 /usr/local/bin/python3.7 pip -m install Faker  -i https://pypi.tuna.tsinghua.edu.cn/simple
->>>>>>> 3fb88284a342c0e5e0553f94f36da1024ae76b58
 
 二、py2app
 python3 -m pip uninstall setuptools==69.5.1
@@ -3104,10 +3102,9 @@ python3.7 setup.py py2app --debug
 chmod +x /path/to/your/app/YourApp.appYourApp
 chmod x /Users/ketangchen/Documents/UiAutoOfApp/utils/dist/aboutPostman.app/Contents/MacOS/aboutPostman
 
-#dist路径
-/Users/ketangchen/Documents/UiAutoOfApp/utils/dist
+dist路径: /Users/ketangchen/Documents/UiAutoOfApp20240703/UiAutoOfApp/utils
 
-/Users/ketangchen/Documents/UiAutoOfApp20240703/UiAutoOfApp/utils
+
 
 打包依赖库
 pip freeze > requirements.txt
