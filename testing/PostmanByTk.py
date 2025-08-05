@@ -628,6 +628,8 @@ class SimplePostmanApp(tk.Tk):
         # # 绑定快捷《CtrL+)到撤销操作的函数#
         # self.bind("<Control-z>", lambda event: self.undo_operation())
 
+        self.configure(bg='lightblue')
+
     def goto_line(self, text_widget, line_number):
         """"""
         # 创建一个消息提示子窗口
@@ -960,7 +962,7 @@ class SimplePostmanApp(tk.Tk):
         self.headers_text = scrolledtext.ScrolledText(self, width=45, height=10, bg="lightskyblue")
         self.headers_text.grid(column=1, row=2, rowspan=2, sticky='NSEW')
         # scrolledtext.ScrolledText内添加功能按钮
-        self.add_function_buttons_in_request_text(self, self.headers_text, 1)
+        self.add_function_buttons_in_request_text(self, self.headers_text, 0)
 
         # self.headers_operation_combobox = ttk.Combobox(self, values=['Format', 'Copy', 'Paste', 'Clear'],
         #                                                state='readonly')  # 组件按钮格式化功能
@@ -992,7 +994,7 @@ class SimplePostmanApp(tk.Tk):
         self.body_text = scrolledtext.ScrolledText(self, width=45, height=15, bg="lightskyblue")
         self.body_text.grid(column=1, row=4, rowspan=2, sticky='NSEW')
         # scrolledtext.ScrolledText内添加功能按钮
-        self.add_function_buttons_in_request_text(self, self.body_text, 1)
+        self.add_function_buttons_in_request_text(self, self.body_text, 0)
 
         # self.body_operation_combobox = ttk.Combobox(self, values=['Format', 'Copy', 'Paste', 'Clear'],
         #                                             state='readonly')  # 组件按钮格式化功能
@@ -1638,7 +1640,7 @@ class SimplePostmanApp(tk.Tk):
                 self.left_img_output.image = photo  # 防止被垃圾回收
 
                 # 调用OCR方法
-                self.seeImgToTxtByPaddleOcr1(self.text_output, img_path, lang, 0)
+                self.seeImgToTxtByPaddleOcr1(self.text_output, img_path, lang, 1)
 
                 #self.askAI(self.left_img_output, self.text_output,"gpt-4o-mini")
 
@@ -1647,6 +1649,18 @@ class SimplePostmanApp(tk.Tk):
             except Exception as e:
                 messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
 
+    def seeOnly_imageText_via_ocr(self, img_path):
+        if img_path:
+            try:
+                # 调用OCR识别  param lang must in dict_keys(['ch', 'en', 'korean', 'japan', 'chinese_cht', 'ta', 'te', 'ka', 'latin', 'arabic', 'cyrillic', 'devanagari']), but got chi_sim
+                lang_map = {"中文": "ch", "英文": "en",
+                            "日文": "japan", "韩文": "korean", "阿拉伯文": "arabic"}
+                #selected_lang = self.lang_combo.get()
+                lang = lang_map["中文"]
+                # 调用OCR方法
+                self.seeImgToTxtByPaddleOcr2(img_path, lang, 1)
+            except Exception as e:
+                messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
     """
     上述代码不符合要求，选择插入的图片未能自适应填充满img_frame区域，要求不改变代码的基本功能进行修改
     """
@@ -1727,15 +1741,14 @@ class SimplePostmanApp(tk.Tk):
 
 
 
-    def add_function_buttons_in_request_text(self, which_win, which_text, pattern=1):
+    def add_function_buttons_in_request_text(self, which_win, which_text, pattern):
         # 创建功能按钮的Frame（放在Text控件底部）
         button_frame1 = ttk.Frame(which_text.master, width=100)
         button_frame1.pack(side=tk.TOP, fill=tk.X)
-        if pattern == 1:
-            # 格式化json
-            question_btn = ttk.Button(button_frame1, text="Format", command=lambda: self.thread_it(
-                self.format_content(which_text)))  # command=lambda: which_text.delete(1.0, tk.END))
-            question_btn.pack(side=tk.LEFT, padx=2, pady=2)
+        # 格式化json
+        question_btn = ttk.Button(button_frame1, text="Format", command=lambda: self.thread_it(
+            self.format_content(which_text)))  # command=lambda: which_text.delete(1.0, tk.END))
+        question_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
         button_frame2 = ttk.Frame(which_text.master)
         button_frame2.pack(side=tk.TOP, fill=tk.X)
@@ -1763,6 +1776,14 @@ class SimplePostmanApp(tk.Tk):
         clear_btn = ttk.Button(button_frame5, text="Clear", command=lambda: self.clearContent(
             which_text))  # command=lambda: which_text.delete(1.0, tk.END))
         clear_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        # 截屏识字,复制到粘贴板
+        if pattern == 1:
+            button_frame6 = ttk.Frame(which_text.master, width=100)
+            button_frame6.pack(side=tk.TOP, fill=tk.X)
+            # 格式化json
+            screenshot_btn = ttk.Button(button_frame6, text="Screen",command=lambda: self.thread_it(self.start_region_selection2(self)))
+            screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
     def create_tools_sub_widgets3(self, sub_win):
         """创建图片OCR识别界面布局（左图右文）- 支持图片自适应填充"""
@@ -2009,6 +2030,56 @@ class SimplePostmanApp(tk.Tk):
         # 强制刷新
         self.region_window.update_idletasks()
 
+    def start_region_selection2(self, whichWin):
+        """启动区域选择模式（修复颜色错误版）"""
+        # whichWin.withdraw()   # 隐藏窗口
+
+        # 创建窗口
+        self.region_window = Toplevel()
+        self.region_window.overrideredirect(True)  # 移除窗口装饰
+
+        # macOS专用透明设置
+        self.region_window.configure(bg='systemTransparent')
+        self.region_window.attributes('-transparent', True)
+        self.region_window.attributes('-alpha', 0.3)
+        self.region_window.attributes('-topmost', True)
+
+        # 设置全屏尺寸
+        screen_width = self.region_window.winfo_screenwidth()
+        screen_height = self.region_window.winfo_screenheight()
+        self.region_window.geometry(f"{screen_width}x{screen_height}+0+0")
+
+        # 创建画布（使用标准颜色格式）
+        self.canvas = Canvas(
+            self.region_window,
+            cursor="cross",
+            bg='black',  # 改为标准颜色格式
+            highlightthickness=0
+        )
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        # 通过设置画布透明度来实现效果
+        self.canvas.config(bg='systemTransparent')  # 系统透明色
+        self.canvas['highlightbackground'] = 'systemTransparent'  # 系统透明色
+
+        # 绑定事件
+        self.canvas.bind("<ButtonPress-1>", self.on_press)
+        self.canvas.bind("<B1-Motion>", self.on_drag)
+        self.canvas.bind("<ButtonRelease-1>", self.on_release2)
+        self.region_window.bind("<Escape>", self.cancel_selection)
+
+        # 提示文本
+        self.canvas.create_text(
+            screen_width // 2,
+            30,
+            text="拖动鼠标选择区域 (ESC取消)",
+            fill="lightblue",
+            font=('PingFang SC', 16)
+        )
+
+        # 强制刷新
+        self.region_window.update_idletasks()
+
     def on_press(self, event):
         """鼠标按下事件"""
         self.start_x = event.x
@@ -2071,6 +2142,27 @@ class SimplePostmanApp(tk.Tk):
 
         # 短暂延迟确保窗口关闭
         self.after(100, lambda: self.capture_region1(x1, y1, x2, y2))
+
+    def on_release2(self, event):
+        """鼠标释放事件"""
+        if not self.rect:
+            return
+
+        # 获取选择的区域坐标
+        x1, y1, x2, y2 = self.canvas.coords(self.rect)
+        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+
+        # 确保坐标有效
+        if abs(x2 - x1) < 10 or abs(y2 - y1) < 10:
+            self.cancel_selection()
+            return
+
+            # 关闭选择窗口
+        self.region_window.destroy()
+        self.region_window = None
+
+        # 短暂延迟确保窗口关闭
+        self.after(100, lambda: self.capture_region2(x1, y1, x2, y2))
 
     def cancel_selection(self, event=None):
         """取消选择"""
@@ -2209,6 +2301,37 @@ class SimplePostmanApp(tk.Tk):
             tk.messagebox.showerror(" 错误", f"截图失败: {str(e)}")
             self.deiconify()
 
+    def capture_region2(self, x1, y1, x2, y2):
+        """捕获选定区域"""
+        try:
+            # 调整坐标确保左上角到右下角
+            if x1 > x2:
+                x1, x2 = x2, x1
+            if y1 > y2:
+                y1, y2 = y2, y1
+
+            # 截图
+            self.screenshot = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+
+            # # 显示预览窗口
+            # self.show_preview()
+
+            # 生成带时间戳的文件名
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            default_filename = f"区域截图_{timestamp}.png"
+            # 保存截图
+            file_path = f'{current_script_path}/{screenshotFileName}/{default_filename}'
+            self.screenshot.save(file_path)
+
+            #截图识别
+            self.seeOnly_imageText_via_ocr(file_path)
+
+            # self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
+
+        except Exception as e:
+            tk.messagebox.showerror(" 错误", f"截图失败: {str(e)}")
+            self.deiconify()
+
     def show_preview(self):
         """显示截图预览"""
         preview_window = Toplevel(self)
@@ -2327,8 +2450,10 @@ class SimplePostmanApp(tk.Tk):
             # print(f"{line[1][0]}")
             # d[line[1][0]] = (center_x, center_y)
         # return d
+        resText='\n'.join(res)
         self.clearContent(which_text)
-        which_text.insert('insert', '\n'.join(res))
+        self.copy_content_no_win(resText)
+        which_text.insert('insert', resText)
 
     def seeImgToTxtByPaddleOcr1(self, which_text, img_path, lang, pattern):
         # 创建PaddleOCR对象，指定语言模型，默认为中文英文模型
@@ -2345,23 +2470,39 @@ class SimplePostmanApp(tk.Tk):
         res = []
         # 结果展示
         for line in result[0]:
-            # coords = line[0]  # 文本坐标
-            # # 获取四个角坐标
-            # x1, y1 = coords[0]
-            # x2, y2 = coords[1]
-            # x3, y3 = coords[2]
-            # x4, y4 = coords[3]
-            # # 计算中心点坐标
-            # center_x = (x1 + x2 + x3 + x4) / 4
-            # center_y = (y1 + y2 + y3 + y4) / 4
             textResult = f"{line[1][0]}"
-            # 修正方案1：确保result为字符串类型
+            # 确保result为字符串类型
             if not isinstance(textResult, str):
                 textResult = str(result)
             res.append(textResult)
-        if pattern==0:
-            self.clearContent(which_text)
-        which_text.insert('insert', '\n'.join(res))
+        resText='\n'.join(res)
+        self.copy_content_no_win(resText)
+        # self.clearContent(which_text)
+        which_text.insert('insert', resText)
+
+    def seeImgToTxtByPaddleOcr2(self, img_path, lang, pattern):
+        # 创建PaddleOCR对象，指定语言模型，默认为中文英文模型
+        ocr = PaddleOCR(
+            use_textline_orientation=True,  # 是否使用方向分类
+            lang=lang  # 'ch'表示中文，'en'表示中文
+        )
+        # 使用OCR进行文字识别
+        result = ocr.ocr(img_path, cls=True)
+        print(f"识别结果是：{result}")
+        print(f"识别结果是：{result[0]}")
+        print(type(result))
+        d = {}
+        res = []
+        # 结果展示
+        for line in result[0]:
+            textResult = f"{line[1][0]}"
+            # 确保result为字符串类型
+            if not isinstance(textResult, str):
+                textResult = str(result)
+            res.append(textResult)
+        resText='\n'.join(res)
+        self.copy_content_no_win(resText)
+
 
     # 删除日志
     def delete_records(self):
@@ -2782,6 +2923,14 @@ class SimplePostmanApp(tk.Tk):
         self.messageInformInWin(input_content, 2800)
         time.sleep(2)
 
+    def copy_content_no_win(self, text):  # 获取输入框的内容
+        input_content = text  # 将内容复制到剪贴板
+        self.clipboard_clear()
+        self.clipboard_append(input_content)  # 显示复制成功的消息《可选》
+        print("内容已复制到剪贴板。")  # messagebox.showinfo(input_content)
+        #self.messageInformInWin(input_content, 2800)
+        time.sleep(1)
+
     def cut_content(self, which_text):  # 剪切输入框的内容
         input_content = which_text.get("1.0", "end-1c")  # 将内容复制到剪贴板
         self.clearContent(which_text)
@@ -3174,6 +3323,13 @@ conda activate my_env1
 conda deactivate
 conda env list
 file $(which python3)
+
+
+import paddle
+print(paddle.__file__) # /Users/ketangchen/miniconda3/envs/my_env1/lib/python3.9/site-packages/paddle/__init__.py
+
+
+cp -r /Users/ketangchen/miniconda3/envs/my_env1/lib/python3.9/site-packages/paddle/libs ./dist/PostmanByTk1.app/Contents/MacOS/ 
 """
 
 
