@@ -1,4 +1,5 @@
-# -*- coding: gbk -*-
+# -*- coding: utf-8 -*-
+## arch -x86_64 pip install --force-reinstall opencv-python numpy
 import tkinter as tk  # /usr/local/bin/python3.7 pip -m install treelib  -i https://pypi.tuna.tsinghua.edu.cn/simple
 from tkinter import ttk, scrolledtext  # D:\Python\Python37\python.exe pip install pillow  -i https://pypi.tuna.tsinghua.edu.cn/simple
 import requests
@@ -7,52 +8,41 @@ from faker import Faker
 import json
 import string
 import random
-import time
 from tkinter import messagebox
 import glob
-
-from PIL import Image, ImageTk  # /usr/local/bin/python3.7 -m pip install Pillow -i https://pypi.tuna.tsinghua.edu.cn/simple
-from PIL import Image, ImageTk  # pip install pillow
-
-import os
+from PIL import Image  # /usr/local/bin/python3.7 -m pip install Pillow -i https://pypi.tuna.tsinghua.edu.cn/simple
 from os.path import isfile, splitext
-import tkinter as tk
 from tkinter import filedialog
 import threading
-# import win32con
-import ctypes
 from xmindparser import xmind_to_dict
 from treelib import Tree  # /usr/local/bin/python3.7 -m pip install treelib
 from uuid import uuid4
 from openpyxl import Workbook
-
 from time import sleep
-import os
-import paddle
-from textblob import TextBlob
-import onnxruntime
-import numpy as np
 from paddleocr import PaddleOCR
+"""
+确保安装的是这几个版本，不要随便升级，否则爆；最好用虚拟环境
+(my_env1) ketangdeMacBook-Pro:UiAutoOfApp ketangchen$ pip list | grep paddle
+paddleocr                2.8.0
+paddlepaddle             2.5.2
+paddlex                  3.1.3
+
+
+"""
 import openai  # /usr/local/bin/python3.7 -m pip install openai -i https://pypi.tuna.tsinghua.edu.cn/simple
+from tkinter import Canvas, Toplevel
+from PIL import ImageGrab, ImageTk
+import time
+import os
+from openpyxl.styles import Border, Side, PatternFill
 
 """
 /usr/local/bin/python3.7 -m pip install yourmodel -i https://pypi.tuna.tsinghua.edu.cn/simple
 /usr/local/bin/python3.7 -m pip install py2app -i https://pypi.tuna.tsinghua.edu.cn/simple
+/usr/local/bin/python3.7 -m pip install --upgrade paddlepaddle -i https://pypi.tuna.tsinghua.edu.cn/simple
+/usr/local/bin/python3.7 -m pip install --upgrade py2app setuptools wheel -i https://pypi.tuna.tsinghua.edu.cn/simple
+
 """
-
-import tkinter as tk
-from tkinter import Canvas, Toplevel
-from PIL import ImageGrab, ImageTk
-import numpy as np
-import time
-import os
-#from datetime import datetime
-
-from tkinter import PhotoImage
-
-from openpyxl.styles import PatternFill
-from openpyxl.formatting.rule import CellIsRule
-from openpyxl.styles import Border, Side, PatternFill
 
 # 确保存储日志的目录存在
 current_script_path = os.getcwd()
@@ -81,7 +71,7 @@ caseExcelfilePath = f'{current_script_path}/{caseExcelFileName}'
 if not os.path.exists(caseExcelfilePath):
     os.makedirs(caseExcelfilePath)
 
-encodingType = 'gbk'
+encodingType = 'utf-8'
 
 # 读取JSON文件
 def read_json_file1(file_path) -> dict:
@@ -1106,7 +1096,7 @@ class SimplePostmanApp(tk.Tk):
         # self.search_combobox['values'] = find_value_of_key_in_nested_dict(read_json_file(f'{current_script_path}/configini.json'), "Searchkey")# list
         self.search_combobox.current(0)  # 设置默认值为列表中的第一个元素
 
-        self.set_button_Tools = tk.Button(self, text="Tools", command=self.create_tools_sub_window)  # 组件按钮格式化功能
+        self.set_button_Tools = tk.Button(self, text="BusinessTools", command=self.create_tools_sub_window)  # 组件按钮格式化功能
         self.set_button_Tools.grid(column=2,
                              row=11)  # self,set button = tk.Button(self, text="json",command=self,find_file_to_fill_record) # 组件按纽定将式化函教功能# self.set button.grid(column=2，row=1)
 
@@ -1260,7 +1250,7 @@ class SimplePostmanApp(tk.Tk):
         sub_win.getPythonCode_button.grid(column=1, row=1)
 
         sub_win.getTestData_button = tk.Button(sub_win, text="GetTestData", anchor="c", command=lambda: self.thread_it(
-            self.getTestData(sub_win.output_text, sub_win.output_text.get("1.0", "end-1c"))))
+            self.getTestData(sub_win.output_text, sub_win.encrypt_combobox)))
         sub_win.getTestData_button.grid(column=1, row=2)
 
         # 设置加密按钮
@@ -1512,6 +1502,7 @@ class SimplePostmanApp(tk.Tk):
                 self.seeImgToTxtByPaddleOcr(self.text_output, img_path, lang, pattern)
 
             except Exception as e:
+                self.left_img_output.insert("end", f"错误为：{e}")  # 插入异常描述
                 messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
 
     def select_image_for_ocr_qa(self):
@@ -1918,22 +1909,39 @@ class SimplePostmanApp(tk.Tk):
     def insert_content_in_text(self,which_text,content):
         which_text.insert(tk.END,content)
 
-    def start_region_selection(self,whichWin):
-        """启动区域选择模式"""
-        whichWin.withdraw()  # 隐藏窗口
+    def start_region_selection(self, whichWin):
+        """启动区域选择模式（修复颜色错误版）"""
+        # whichWin.withdraw()   # 隐藏窗口
 
-        # 创建全屏透明窗口用于区域选择
+        # 创建窗口
         self.region_window = Toplevel()
-        self.region_window.attributes('-fullscreen', True)
+        self.region_window.overrideredirect(True)  # 移除窗口装饰
+
+        # macOS专用透明设置
+        self.region_window.configure(bg='systemTransparent')
+        self.region_window.attributes('-transparent', True)
         self.region_window.attributes('-alpha', 0.3)
         self.region_window.attributes('-topmost', True)
-        self.region_window.configure(bg='black')
 
-        # 创建画布
-        self.canvas = Canvas(self.region_window, cursor="cross", bg='black', highlightthickness=0)
+        # 设置全屏尺寸
+        screen_width = self.region_window.winfo_screenwidth()
+        screen_height = self.region_window.winfo_screenheight()
+        self.region_window.geometry(f"{screen_width}x{screen_height}+0+0")
+
+        # 创建画布（使用标准颜色格式）
+        self.canvas = Canvas(
+            self.region_window,
+            cursor="cross",
+            bg='black',  # 改为标准颜色格式
+            highlightthickness=0
+        )
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        # 绑定鼠标事件
+        # 通过设置画布透明度来实现效果
+        self.canvas.config(bg='systemTransparent')  # 系统透明色
+        self.canvas['highlightbackground'] = 'systemTransparent'  # 系统透明色
+
+        # 绑定事件
         self.canvas.bind("<ButtonPress-1>", self.on_press)
         self.canvas.bind("<B1-Motion>", self.on_drag)
         self.canvas.bind("<ButtonRelease-1>", self.on_release)
@@ -1941,29 +1949,49 @@ class SimplePostmanApp(tk.Tk):
 
         # 提示文本
         self.canvas.create_text(
-            self.region_window.winfo_screenwidth() // 2,
+            screen_width // 2,
             30,
             text="拖动鼠标选择区域 (ESC取消)",
-            fill="black",
-            font=('微软雅黑', 16)
+            fill="lightblue",
+            font=('PingFang SC', 16)
         )
 
-    def start_region_selection1(self,whichWin):
-        """启动区域选择模式"""
-        #whichWin.withdraw()  # 隐藏窗口
+        # 强制刷新
+        self.region_window.update_idletasks()
 
-        # 创建全屏透明窗口用于区域选择
+    def start_region_selection1(self, whichWin):
+        """启动区域选择模式（修复颜色错误版）"""
+        # whichWin.withdraw()   # 隐藏窗口
+
+        # 创建窗口
         self.region_window = Toplevel()
-        self.region_window.attributes('-fullscreen', True)
+        self.region_window.overrideredirect(True)  # 移除窗口装饰
+
+        # macOS专用透明设置
+        self.region_window.configure(bg='systemTransparent')
+        self.region_window.attributes('-transparent', True)
         self.region_window.attributes('-alpha', 0.3)
         self.region_window.attributes('-topmost', True)
-        self.region_window.configure(bg='black')
 
-        # 创建画布
-        self.canvas = Canvas(self.region_window, cursor="cross", bg='black', highlightthickness=0)
+        # 设置全屏尺寸
+        screen_width = self.region_window.winfo_screenwidth()
+        screen_height = self.region_window.winfo_screenheight()
+        self.region_window.geometry(f"{screen_width}x{screen_height}+0+0")
+
+        # 创建画布（使用标准颜色格式）
+        self.canvas = Canvas(
+            self.region_window,
+            cursor="cross",
+            bg='black',  # 改为标准颜色格式
+            highlightthickness=0
+        )
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        # 绑定鼠标事件
+        # 通过设置画布透明度来实现效果
+        self.canvas.config(bg='systemTransparent')  # 系统透明色
+        self.canvas['highlightbackground'] = 'systemTransparent'  # 系统透明色
+
+        # 绑定事件
         self.canvas.bind("<ButtonPress-1>", self.on_press)
         self.canvas.bind("<B1-Motion>", self.on_drag)
         self.canvas.bind("<ButtonRelease-1>", self.on_release1)
@@ -1971,12 +1999,15 @@ class SimplePostmanApp(tk.Tk):
 
         # 提示文本
         self.canvas.create_text(
-            self.region_window.winfo_screenwidth() // 2,
+            screen_width // 2,
             30,
             text="拖动鼠标选择区域 (ESC取消)",
-            fill="black",
-            font=('微软雅黑', 16)
+            fill="lightblue",
+            font=('PingFang SC', 16)
         )
+
+        # 强制刷新
+        self.region_window.update_idletasks()
 
     def on_press(self, event):
         """鼠标按下事件"""
@@ -2259,7 +2290,10 @@ class SimplePostmanApp(tk.Tk):
 
     def seeImgToTxtByPaddleOcr(self, which_text, img_path, lang, pattern):
         # 创建PaddleOCR对象，指定语言模型，默认为中文英文模型
-        ocr = PaddleOCR(use_angle_cls=True, lang=lang)  # 'ch'表示中文，'en'表示中文
+        ocr = PaddleOCR(
+            use_textline_orientation=True,  # 是否使用方向分类
+            lang=lang  # 'ch'表示中文，'en'表示中文
+        )
         # 使用OCR进行文字识别
         result = ocr.ocr(img_path, cls=True)
         print(f"识别结果是：{result}")
@@ -2298,7 +2332,10 @@ class SimplePostmanApp(tk.Tk):
 
     def seeImgToTxtByPaddleOcr1(self, which_text, img_path, lang, pattern):
         # 创建PaddleOCR对象，指定语言模型，默认为中文英文模型
-        ocr = PaddleOCR(use_angle_cls=True, lang=lang)  # 'ch'表示中文，'en'表示中文
+        ocr = PaddleOCR(
+            use_textline_orientation=True,  # 是否使用方向分类
+            lang=lang  # 'ch'表示中文，'en'表示中文
+        )
         # 使用OCR进行文字识别
         result = ocr.ocr(img_path, cls=True)
         print(f"识别结果是：{result}")
@@ -2764,7 +2801,7 @@ class SimplePostmanApp(tk.Tk):
         return newstringValue
 
     def getTestData(self, which_text, encryptChar_text):
-        encryptChar = encryptChar_text  # .get()#测试
+        encryptChar = encryptChar_text.get()  # .get()#测试
         # 生成测试数据
         f = Faker(["zh_CN"])  # 默认en_Us，支持中文本地化zh_Ch
         fake_name = f.name()
@@ -2941,7 +2978,7 @@ class SimplePostmanApp(tk.Tk):
         """通过选择的记录填充表单"""
         record_file = self.record_combobox.get()
         path = f'{current_script_path}/{logFileName}/{record_file}'
-        with open(path, 'r') as file:
+        with open(path, 'r',encoding=encodingType) as file:
             data = json.load(file)
             request_data = data['request']
             response_data = data['response']
@@ -3052,7 +3089,7 @@ if __name__ == '__main__':
 export PATH="/usr/local/bin/python3.7:$PATH"
 
 Windows打包应用
-pyinstaller --onefile --windowed D:\TestDev\PostmanByTk1.py
+#pyinstaller --onefile --windowed D:\TestDev\PostmanByTk1.py
 
 Mac打包应用
 一、pyinstaller 主要用于 Python3
@@ -3115,6 +3152,28 @@ pip install -r /Users/ketangchen/Documents/UiAutoOfApp20240703/UiAutoOfApp/utils
 
 xattr -r -d com.apple.quarantine  /Users/ketangchen/Desktop/AboutPostman.dmg
 xattr -r -d com.apple.quarantine  /Users/ketangchen/Documents/UiAutoOfApp/utils/dist/aboutPostman.app
+
+arch -x86_64 python3 PostmanByTk1.py
+arch -x86_64 python3 /Users/ketangchen/Documents/UiAutoOfApp20240703/UiAutoOfApp/utils/aboutOcr_PaddleOcr.py
+什么原因造成的？如何解决？
+
+
+
+操作系统版本（uname -m）：x86_64
+Python版本（python --version）:3.9
+PaddlePaddle和PaddleOCR的版本（pip list | grep paddle）:
+
+pip怎么查看一个三方库有哪些版本？
+pip index versions <package>
+pip index versions paddlepaddle
+pip index versions paddleocr
+
+conda创建虚拟环境
+conda create -n my_env1 python=3.9
+conda activate my_env1
+conda deactivate
+conda env list
+file $(which python3)
 """
 
 
