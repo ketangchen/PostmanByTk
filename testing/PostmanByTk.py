@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 ## arch -x86_64 pip install --force-reinstall opencv-python numpy
+import os
 import tkinter as tk  # /usr/local/bin/python3.7 pip -m install treelib  -i https://pypi.tuna.tsinghua.edu.cn/simple
 from tkinter import ttk, scrolledtext  # D:\Python\Python37\python.exe pip install pillow  -i https://pypi.tuna.tsinghua.edu.cn/simple
 import requests
@@ -19,6 +20,8 @@ from treelib import Tree  # /usr/local/bin/python3.7 -m pip install treelib
 from uuid import uuid4
 from openpyxl import Workbook
 from time import sleep
+# os.environ['PADDLE_DIR']  = '/Users/ketangchen/miniconda3/envs/my_env1/lib/python3.9/site-packages/paddle/libs'  # 在代码中手动设置 PaddlePaddle 的库路径（需在导入 paddleocr 前执行）
+# os.environ['DYLD_LIBRARY_PATH']  = '/Users/ketangchen/miniconda3/envs/my_env1/lib/python3.9/site-packages/paddle/libs'  #
 from paddleocr import PaddleOCR
 """
 确保安装的是这几个版本，不要随便升级，否则爆；最好用虚拟环境
@@ -33,7 +36,6 @@ import openai  # /usr/local/bin/python3.7 -m pip install openai -i https://pypi.
 from tkinter import Canvas, Toplevel
 from PIL import ImageGrab, ImageTk
 import time
-import os
 from openpyxl.styles import Border, Side, PatternFill
 
 """
@@ -811,7 +813,7 @@ class SimplePostmanApp(tk.Tk):
         # 在子窗口中添加标签
         # Label = tk.Label(sub_window，text="这是一个子窗口")
         # label.pack()
-        self.create_tools_sub_widgets(sub_window)
+        self.create_business_tools_sub_widgets(sub_window)
 
     def create_tools_sub_window1(self):
 
@@ -840,7 +842,7 @@ class SimplePostmanApp(tk.Tk):
         # 在子窗口中添加标签
         # Label = tk.Label(sub_window，text="这是一个子窗口")
         # label.pack()
-        self.create_tools_sub_widgets1(sub_window)
+        self.create_modify_img_sub_widgets(sub_window)
 
     def create_tools_sub_window2(self):
 
@@ -869,7 +871,7 @@ class SimplePostmanApp(tk.Tk):
         # 在子窗口中添加标签
         # Label = tk.Label(sub_window，text="这是一个子窗口")
         # label.pack()
-        self.create_tools_sub_widgets2(sub_window)
+        self.create_ocr_text_sub_widgets(sub_window)
 
     def create_tools_sub_window3(self):
 
@@ -898,7 +900,38 @@ class SimplePostmanApp(tk.Tk):
         # 在子窗口中添加标签
         # Label = tk.Label(sub_window，text="这是一个子窗口")
         # label.pack()
-        self.create_tools_sub_widgets3(sub_window)
+        self.create_ocr_qa_sub_widgets(sub_window)
+
+    def create_tools_sub_window4(self):
+
+        # 创建工具子窗口
+        sub_window = tk.Toplevel(self)
+        try:
+            # 设置子窗口图标
+            sub_window.wm_iconbitmap(bitmap=f'{current_script_path}/happy.ico')
+        except:
+            pass
+        # 设置窗口背景颜色
+        sub_window.configure(bg='lightskyblue')
+        # 获取电脑分辨率
+        screen_width = sub_window.winfo_screenwidth()
+        screen_height = sub_window.winfo_screenheight()
+        # 设置坐标
+        x = (screen_width - 100) // 1
+        y = (screen_height - 30) // 1
+        # x = (screen_width - 150) // 2
+        # y = (screen_height - 30) // 2
+        # 设置应用名
+        sub_window.title("")
+        # 设置窗口展示位置和大小
+        sub_window.geometry(f"{100}x{30}+{x}+{y}")
+        # 设置窗口自适应
+        sub_window.grid_columnconfigure(1, weight=1)
+        sub_window.grid_rowconfigure(5, weight=1)
+        # 在子窗口中添加标签
+        # Label = tk.Label(sub_window，text="这是一个子窗口")
+        # label.pack()
+        self.create_screenshot_sub_widgets(sub_window)
 
     def change_picture_format(self):
 
@@ -1111,8 +1144,10 @@ class SimplePostmanApp(tk.Tk):
                              row=13)  # self,set button = tk.Button(self, text="json",command=self,find_file_to_fill_record) # 组件按纽定将式化函教功能# self.set button.grid(column=2，row=1)
 
         self.set_button_QaByAI = tk.Button(self, text="QaByAI", command=self.create_tools_sub_window3)  # 组件按钮格式化功能
-        self.set_button_QaByAI.grid(column=2,
-                             row=14)  # self,set button = tk.Button(self, text="json",command=self,find_file_to_fill_record) # 组件按纽定将式化函教功能# self.set button.grid(column=2，row=1)
+        self.set_button_QaByAI.grid(column=2,row=14)  # self,set button = tk.Button(self, text="json",command=self,find_file_to_fill_record) # 组件按纽定将式化函教功能# self.set button.grid(column=2，row=1)
+
+        self.set_button_screenshot = tk.Button(self, text="ScreenSub", command=self.create_tools_sub_window4)  # 组件按钮格式化功能
+        self.set_button_screenshot.grid(column=2,row=15)
 
         self.select_record_button = tk.Button(self, text="Select Records:", anchor='c',
                                               command=self.find_file_to_fill_record)  #
@@ -1237,7 +1272,7 @@ class SimplePostmanApp(tk.Tk):
                                                                                                         sub_win.body_text_keyValue_combobox.get()))
         sub_win.set_body_text_keyValue_button.grid(column=2, row=13)
 
-    def create_tools_sub_widgets(self, sub_win):
+    def create_business_tools_sub_widgets(self, sub_win):
         sub_win.output_text = scrolledtext.ScrolledText(sub_win, width=30, height=20, bg="lightskyblue")
         sub_win.output_text.grid(column=0, row=0, rowspan=15, sticky='NSEW')
         # scrolledtext.ScrolledText内添加功能按钮
@@ -1322,7 +1357,7 @@ class SimplePostmanApp(tk.Tk):
                                                        sub_win.choose_case_combobox))  # 带参数
         sub_win.WriteXmindToExcel_btn.grid(column=2, row=8)
 
-    def create_tools_sub_widgets1(self, sub_win):
+    def create_modify_img_sub_widgets(self, sub_win):
         # 准备一些图片路径作为示例
         image_paths = [
             "test"
@@ -1383,7 +1418,7 @@ class SimplePostmanApp(tk.Tk):
         img.thumbnail((max_width, max_height), Image.LANCZOS)  # 保持比例缩放
         return ImageTk.PhotoImage(img)
 
-    def create_tools_sub_widgets2(self, sub_win):
+    def create_ocr_text_sub_widgets(self, sub_win):
         """创建图片OCR识别界面布局（左图右文）- 支持图片自适应填充"""
         # --- 主框架（保持不变）---
         main_frame = tk.Frame(sub_win)
@@ -1462,6 +1497,154 @@ class SimplePostmanApp(tk.Tk):
         # select_btn = ttk.Button(btn_frame, text="选择图片",
         #                         command=lambda: self.thread_it(self.select_image_for_ocr_tk()))
         # select_btn.pack(side=tk.RIGHT)
+
+    def create_ocr_qa_sub_widgets(self, sub_win):
+        """创建图片OCR识别界面布局（左图右文）- 支持图片自适应填充"""
+        # --- 第一行主框架 ---
+        main_frame = tk.Frame(sub_win)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # ===== 左侧输入问题区域 =====
+        left_text_frame = tk.Frame(main_frame)
+        left_text_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        scrollbar = tk.Scrollbar(left_text_frame)
+        self.left_text_output = tk.Text(left_text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
+                                   font=('Consolas', 10), padx=5, pady=5)
+        # tk.Text内添加功能按钮
+        self.add_function_buttons_in_qa_text(sub_win, self.left_text_output, 1)
+        scrollbar.config(command=self.left_text_output.yview)
+
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.left_text_output.pack(fill=tk.BOTH, expand=True)
+        self.left_text_output.insert(tk.END, " ") #请输入问题.......
+
+        # ===== 右侧RIGHT输出结果区域 =====
+        right_text_frame = tk.Frame(main_frame)
+        right_text_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        scrollbar = tk.Scrollbar(right_text_frame)
+        self.right_text_output = tk.Text(right_text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
+                                   font=('Consolas', 10), padx=5, pady=5)
+        # tk.Text内添加功能按钮
+        self.add_function_buttons_in_qa_text(sub_win, self.right_text_output, 0)
+        scrollbar.config(command=self.right_text_output.yview)
+
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.right_text_output.pack(fill=tk.BOTH, expand=True)
+        self.right_text_output.insert(tk.END, "")
+
+        # --- 第二行主框架 ---
+        main_frame1 = tk.Frame(sub_win)
+        main_frame1.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # ===== 第二行左侧功能区域 =====
+        left_frame = tk.Frame(main_frame1)
+        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # # --- 新增操作按钮组 ---
+        # btn_group = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
+        # btn_group.pack(fill=tk.X, pady=5)
+
+        # # 执行按钮
+        # ttk.Button(
+        #     btn_group, text="Execute",
+        #     command=lambda: self.combinateCommonOperation(sub_win,
+        #                                                   self.left_text_output,
+        #                                                   self.output_operation)
+        # ).pack(side=tk.LEFT, padx=5)
+        #
+        # # 操作类型选择
+        # self.output_operation = ttk.Combobox(
+        #     btn_group,
+        #     values=['Format', 'Copy', 'Paste', 'Clear'],
+        #     state='readonly'
+        # )
+        # self.output_operation.pack(side=tk.LEFT, padx=5, pady=2)
+        # self.output_operation.current(3)
+
+
+
+        # --- 按钮 ---
+        btn_group1 = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
+        btn_group1.pack(fill=tk.X, pady=5)
+
+        # # 提问按钮
+        # ttk.Button(btn_group1, text="提问",command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini")).pack(side=tk.LEFT, padx=5)
+
+        ttk.Button(btn_group1, text="Select QARecords:",command=lambda: self.find_file_to_fill_QA_record(self.qa_record_combo,self.left_text_output, self.right_text_output)).pack(side=tk.LEFT, padx=5)
+        self.qa_record_combo = ttk.Combobox(btn_group1, state='readonly', width=30)
+        self.qa_record_combo.pack(side=tk.LEFT, padx=5)
+        ##绑定回调函数不传递额外参数##
+        self.qa_record_combo.bind('<<ComboboxSelected>>', self.fill_QA_record)
+        self.load_qa_records(self.qa_record_combo)
+
+        # ##绑定回调函数传递额外参数##
+        # self.qa_record_combo.bind('<<ComboboxSelected>>', lambda e: self.fill_QA_record(e,self.qa_record_combo,self.left_text_output,self.right_text_output))
+
+
+
+        self.delete_qa_record_button = tk.Button(btn_group1, text="Delete QARecords", anchor='c',command=lambda: self.thread_it(self.delete_QA_records(self.qa_record_combo))).pack(side=tk.LEFT, padx=5)
+
+        # ===== 第二行右侧功能区域 =====
+        right_frame = tk.Frame(main_frame1)
+        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+        # # --- 新增操作按钮组 ---
+        # btn_group2 = tk.Frame(right_frame, bd=1, relief=tk.RAISED)
+        # btn_group2.pack(fill=tk.X, pady=5)
+
+        # # 操作类型选择
+        # self.output_operation2 = ttk.Combobox(
+        #     btn_group2,
+        #     values=['Format', 'Copy', 'Paste', 'Clear'],
+        #     state='readonly'
+        # )
+        # self.output_operation2.pack(side=tk.RIGHT, padx=5, pady=2)
+        # self.output_operation2.current(1)
+        #
+        # # 执行按钮
+        # ttk.Button(
+        #     btn_group2, text="Execute",
+        #     command=lambda: self.combinateCommonOperation(sub_win,
+        #                                                   self.right_text_output,
+        #                                                   self.output_operation2)
+        # ).pack(side=tk.RIGHT, padx=5)
+
+        # ===== 底部按钮区域 =====
+        btn_frame = tk.Frame(sub_win)
+        btn_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        tk.Label(btn_frame, text="识别语言:").pack(side=tk.LEFT, padx=(0, 5))
+        self.lang_combo = ttk.Combobox(btn_frame, values=["中文", "英文", "日文", "韩文", "阿拉伯文"])
+        self.lang_combo.pack(side=tk.LEFT, padx=(0, 10))
+        self.lang_combo.current(0)
+
+        tk.Label(btn_frame, text="常用提问话术:").pack(side=tk.LEFT, padx=(0, 5))
+        conversationsList=find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')),  "conversation")
+        self.lang_combo1 = ttk.Combobox(btn_frame, values=conversationsList)
+        self.lang_combo1.pack(side=tk.LEFT, padx=(0, 10))
+        self.lang_combo1.current(0)
+
+        # ask_btn = ttk.Button(btn_frame, text="提问",command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini"))
+        # ask_btn.pack(side=tk.LEFT)
+
+        # 修改原按钮命令：调用load_image_to_label而非直接操作Label
+
+        # select_btn1 = ttk.Button(btn_frame, text="截图提问", command=lambda: self.thread_it(self.start_region_selection(self)))
+        # select_btn1.pack(side=tk.RIGHT)
+        #
+        # select_btn2 = ttk.Button(btn_frame, text="选图提问", command=lambda: self.thread_it(self.select_image_for_ocr_qa()))
+        # select_btn2.pack(side=tk.RIGHT)
+
+        select_btn3 = ttk.Button(btn_frame, text="插入话术", command=lambda: self.thread_it(self.insert_content_in_text(self.left_text_output,self.lang_combo1.get())))
+        select_btn3.pack(side=tk.LEFT)
+
+
+    def create_screenshot_sub_widgets(self, sub_win):
+        sub_win.screenshot_btn = ttk.Button(sub_win, text="ScreenSub",
+                                                   command=lambda: self.start_region_selection2(sub_win))  # 带参数
+        sub_win.screenshot_btn.grid(column=0, row=0)
 
     def select_image_for_ocr_tk(self):
         """Tkinter版本的选择图片方法"""
@@ -1784,148 +1967,6 @@ class SimplePostmanApp(tk.Tk):
             # 格式化json
             screenshot_btn = ttk.Button(button_frame6, text="Screen",command=lambda: self.thread_it(self.start_region_selection2(self)))
             screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
-
-    def create_tools_sub_widgets3(self, sub_win):
-        """创建图片OCR识别界面布局（左图右文）- 支持图片自适应填充"""
-        # --- 第一行主框架 ---
-        main_frame = tk.Frame(sub_win)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        # ===== 左侧输入问题区域 =====
-        left_text_frame = tk.Frame(main_frame)
-        left_text_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        scrollbar = tk.Scrollbar(left_text_frame)
-        self.left_text_output = tk.Text(left_text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
-                                   font=('Consolas', 10), padx=5, pady=5)
-        # tk.Text内添加功能按钮
-        self.add_function_buttons_in_qa_text(sub_win, self.left_text_output, 1)
-        scrollbar.config(command=self.left_text_output.yview)
-
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.left_text_output.pack(fill=tk.BOTH, expand=True)
-        self.left_text_output.insert(tk.END, " ") #请输入问题.......
-
-        # ===== 右侧RIGHT输出结果区域 =====
-        right_text_frame = tk.Frame(main_frame)
-        right_text_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        scrollbar = tk.Scrollbar(right_text_frame)
-        self.right_text_output = tk.Text(right_text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
-                                   font=('Consolas', 10), padx=5, pady=5)
-        # tk.Text内添加功能按钮
-        self.add_function_buttons_in_qa_text(sub_win, self.right_text_output, 0)
-        scrollbar.config(command=self.right_text_output.yview)
-
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.right_text_output.pack(fill=tk.BOTH, expand=True)
-        self.right_text_output.insert(tk.END, "")
-
-        # --- 第二行主框架 ---
-        main_frame1 = tk.Frame(sub_win)
-        main_frame1.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        # ===== 第二行左侧功能区域 =====
-        left_frame = tk.Frame(main_frame1)
-        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        # # --- 新增操作按钮组 ---
-        # btn_group = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
-        # btn_group.pack(fill=tk.X, pady=5)
-
-        # # 执行按钮
-        # ttk.Button(
-        #     btn_group, text="Execute",
-        #     command=lambda: self.combinateCommonOperation(sub_win,
-        #                                                   self.left_text_output,
-        #                                                   self.output_operation)
-        # ).pack(side=tk.LEFT, padx=5)
-        #
-        # # 操作类型选择
-        # self.output_operation = ttk.Combobox(
-        #     btn_group,
-        #     values=['Format', 'Copy', 'Paste', 'Clear'],
-        #     state='readonly'
-        # )
-        # self.output_operation.pack(side=tk.LEFT, padx=5, pady=2)
-        # self.output_operation.current(3)
-
-
-
-        # --- 按钮 ---
-        btn_group1 = tk.Frame(left_frame, bd=1, relief=tk.RAISED)
-        btn_group1.pack(fill=tk.X, pady=5)
-
-        # # 提问按钮
-        # ttk.Button(btn_group1, text="提问",command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini")).pack(side=tk.LEFT, padx=5)
-
-        ttk.Button(btn_group1, text="Select QARecords:",command=lambda: self.find_file_to_fill_QA_record(self.qa_record_combo,self.left_text_output, self.right_text_output)).pack(side=tk.LEFT, padx=5)
-        self.qa_record_combo = ttk.Combobox(btn_group1, state='readonly', width=30)
-        self.qa_record_combo.pack(side=tk.LEFT, padx=5)
-        ##绑定回调函数不传递额外参数##
-        self.qa_record_combo.bind('<<ComboboxSelected>>', self.fill_QA_record)
-        self.load_qa_records(self.qa_record_combo)
-
-        # ##绑定回调函数传递额外参数##
-        # self.qa_record_combo.bind('<<ComboboxSelected>>', lambda e: self.fill_QA_record(e,self.qa_record_combo,self.left_text_output,self.right_text_output))
-
-
-
-        self.delete_qa_record_button = tk.Button(btn_group1, text="Delete QARecords", anchor='c',command=lambda: self.thread_it(self.delete_QA_records(self.qa_record_combo))).pack(side=tk.LEFT, padx=5)
-
-        # ===== 第二行右侧功能区域 =====
-        right_frame = tk.Frame(main_frame1)
-        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
-
-        # # --- 新增操作按钮组 ---
-        # btn_group2 = tk.Frame(right_frame, bd=1, relief=tk.RAISED)
-        # btn_group2.pack(fill=tk.X, pady=5)
-
-        # # 操作类型选择
-        # self.output_operation2 = ttk.Combobox(
-        #     btn_group2,
-        #     values=['Format', 'Copy', 'Paste', 'Clear'],
-        #     state='readonly'
-        # )
-        # self.output_operation2.pack(side=tk.RIGHT, padx=5, pady=2)
-        # self.output_operation2.current(1)
-        #
-        # # 执行按钮
-        # ttk.Button(
-        #     btn_group2, text="Execute",
-        #     command=lambda: self.combinateCommonOperation(sub_win,
-        #                                                   self.right_text_output,
-        #                                                   self.output_operation2)
-        # ).pack(side=tk.RIGHT, padx=5)
-
-        # ===== 底部按钮区域 =====
-        btn_frame = tk.Frame(sub_win)
-        btn_frame.pack(fill=tk.X, padx=5, pady=5)
-
-        tk.Label(btn_frame, text="识别语言:").pack(side=tk.LEFT, padx=(0, 5))
-        self.lang_combo = ttk.Combobox(btn_frame, values=["中文", "英文", "日文", "韩文", "阿拉伯文"])
-        self.lang_combo.pack(side=tk.LEFT, padx=(0, 10))
-        self.lang_combo.current(0)
-
-        tk.Label(btn_frame, text="常用提问话术:").pack(side=tk.LEFT, padx=(0, 5))
-        conversationsList=find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')),  "conversation")
-        self.lang_combo1 = ttk.Combobox(btn_frame, values=conversationsList)
-        self.lang_combo1.pack(side=tk.LEFT, padx=(0, 10))
-        self.lang_combo1.current(0)
-
-        # ask_btn = ttk.Button(btn_frame, text="提问",command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini"))
-        # ask_btn.pack(side=tk.LEFT)
-
-        # 修改原按钮命令：调用load_image_to_label而非直接操作Label
-
-        # select_btn1 = ttk.Button(btn_frame, text="截图提问", command=lambda: self.thread_it(self.start_region_selection(self)))
-        # select_btn1.pack(side=tk.RIGHT)
-        #
-        # select_btn2 = ttk.Button(btn_frame, text="选图提问", command=lambda: self.thread_it(self.select_image_for_ocr_qa()))
-        # select_btn2.pack(side=tk.RIGHT)
-
-        select_btn3 = ttk.Button(btn_frame, text="插入话术", command=lambda: self.thread_it(self.insert_content_in_text(self.left_text_output,self.lang_combo1.get())))
-        select_btn3.pack(side=tk.LEFT)
 
     def insert_content_in_text(self,which_text,content):
         which_text.insert(tk.END,content)
