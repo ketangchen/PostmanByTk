@@ -1651,7 +1651,7 @@ class SimplePostmanApp(tk.Tk):
 
     def create_screenshot_sub_widgets(self, sub_win):
         sub_win.screenshot_btn = ttk.Button(sub_win, text="ScreenSub",
-                                                   command=lambda: self.start_region_selection2(sub_win))  # 带参数
+                                                   command=lambda: self.start_region_selection2())  # 带参数
         sub_win.screenshot_btn.grid(column=0, row=0)
 
     def select_image_for_ocr_tk(self):
