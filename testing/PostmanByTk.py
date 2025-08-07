@@ -22,6 +22,8 @@ from openpyxl import Workbook
 from time import sleep
 # os.environ['PADDLE_DIR']  = '/Users/ketangchen/miniconda3/envs/my_env1/lib/python3.9/site-packages/paddle/libs'  # 在代码中手动设置 PaddlePaddle 的库路径（需在导入 paddleocr 前执行）
 # os.environ['DYLD_LIBRARY_PATH']  = '/Users/ketangchen/miniconda3/envs/my_env1/lib/python3.9/site-packages/paddle/libs'  #
+# 指定 PaddlePaddle 的库路径（需替换为实际路径）
+# os.environ['PADDLE_DIR'] = '/Users/ketangchen/miniconda3/envs/my_env1/lib/python3.9/site-packages/paddle/libs'  # 例如 Conda 环境中的库路径
 from paddleocr import PaddleOCR
 """
 确保安装的是这几个版本，不要随便升级，否则爆；最好用虚拟环境
@@ -626,9 +628,12 @@ class SimplePostmanApp(tk.Tk):
         self.load_records()
 
         # 绑定快捷键《CtrL+Z)到撒操作的函数
-        self.bind("<Control-z>", lambda event: self.undo_operation())
-        # # 绑定快捷《CtrL+)到撤销操作的函数#
-        # self.bind("<Control-z>", lambda event: self.undo_operation())
+        self.bind("<Control-Z>", lambda event: self.undo_operation(event))
+        # # 绑定快捷《CtrL+Z)到撤销操作的函数#
+        # self.bind("<Control-Z>", lambda event: self.undo_operation())
+
+        # 绑定快捷键《CtrL+L)到撒操作的函数
+        self.bind_all("<Control-L>", lambda event: self.start_region_selection2())
 
         self.configure(bg='lightblue')
 
@@ -674,7 +679,7 @@ class SimplePostmanApp(tk.Tk):
         # lastingTime后调用关闭窗口的函数
         popup.after(lastingTime, close_window)
 
-    def undo_operation(self):
+    def undo_operation(self,event):
         print("微销操作")
         # 在这里添加撒销操作的具体实现代码
 
@@ -692,6 +697,8 @@ class SimplePostmanApp(tk.Tk):
                 timeout=20  # 增加超时限制
             )
             answer = completion.choices[0].message.content
+            #extra_requirement='\n要求回答中不能包含*、-、+等字符，公式除外'
+            answer=answer.replace('*','')
             # 打印当前结果
             print(f"【问题】{question}\n【回答】{answer}\n")
             save_qa_data(question,answer)
@@ -906,13 +913,14 @@ class SimplePostmanApp(tk.Tk):
 
         # 创建工具子窗口
         sub_window = tk.Toplevel(self)
-        try:
-            # 设置子窗口图标
-            sub_window.wm_iconbitmap(bitmap=f'{current_script_path}/happy.ico')
-        except:
-            pass
+        # try:
+        #     # 设置子窗口图标
+        #     sub_window.wm_iconbitmap(bitmap=f'{current_script_path}/happy.ico')
+        # except:
+        #     pass
+        # sub_window.withdraw()
         # 设置窗口背景颜色
-        sub_window.configure(bg='lightskyblue')
+        sub_window.configure(bg='systemTransparent')
         # 获取电脑分辨率
         screen_width = sub_window.winfo_screenwidth()
         screen_height = sub_window.winfo_screenheight()
@@ -1451,7 +1459,7 @@ class SimplePostmanApp(tk.Tk):
         self.text_output = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar1.set,
                                    font=('Consolas', 10), padx=5, pady=5)
         # tk.Text内添加功能按钮
-        self.add_function_buttons_in_img_text(sub_win, self.text_output, 0)
+        self.add_function_buttons_in_img_text(sub_win, self.text_output, 2)
         scrollbar1.config(command=self.text_output.yview)
 
         scrollbar1.pack(side=tk.RIGHT, fill=tk.Y)
@@ -1527,7 +1535,7 @@ class SimplePostmanApp(tk.Tk):
         self.right_text_output = tk.Text(right_text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
                                    font=('Consolas', 10), padx=5, pady=5)
         # tk.Text内添加功能按钮
-        self.add_function_buttons_in_qa_text(sub_win, self.right_text_output, 0)
+        self.add_function_buttons_in_qa_text(sub_win, self.right_text_output, 2)
         scrollbar.config(command=self.right_text_output.yview)
 
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -1746,7 +1754,7 @@ class SimplePostmanApp(tk.Tk):
                 # 调用OCR方法
                 self.seeImgToTxtByPaddleOcr1(self.left_text_output, img_path, lang, 1)
 
-                self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
+                self.thread_it(self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini"))
 
                 #save_qa_data(self.left_text_output.get("1.0", "end-1c"), self.right_text_output.get("1.0", "end-1c"))
 
@@ -1860,14 +1868,22 @@ class SimplePostmanApp(tk.Tk):
 
         if pattern==1:
             # 自定义功能
-            question_btn = ttk.Button(button_frame1, text="Question", command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini"))  # command=lambda: which_text.delete(1.0, tk.END))
+            question_btn = ttk.Button(button_frame1, text="Question", command=lambda: self.thread_it(self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini")))  # command=lambda: which_text.delete(1.0, tk.END))
             question_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
-            select_btn1 = ttk.Button(button_frame1, text="Screenshot",command=lambda: self.thread_it(self.start_region_selection(self)))
-            select_btn1.pack(side=tk.LEFT, padx=2, pady=2)
+            screenshot_btn = ttk.Button(button_frame1, text="ScreenQA",command=lambda: self.thread_it(self.start_region_selection(self)))
+            screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
-            select_btn2 = ttk.Button(button_frame1, text="Choice",command=lambda: self.thread_it(self.select_image_for_ocr_qa()))
-            select_btn2.pack(side=tk.LEFT, padx=2, pady=2)
+            choice_btn = ttk.Button(button_frame1, text="Choice",command=lambda: self.thread_it(self.select_image_for_ocr_qa()))
+            choice_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+            only_screenshot_btn = ttk.Button(button_frame1, text="ScreenOnly",command=lambda: self.start_region_selection2())  # command=lambda: which_text.delete(1.0, tk.END))
+            only_screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        if pattern==2:
+            # 自定义功能
+            only_screenshot_btn = ttk.Button(button_frame1, text="ScreenOnly", command=lambda: self.start_region_selection2())  # command=lambda: which_text.delete(1.0, tk.END))
+            only_screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
         # 创建功能按钮的Frame（放在Text控件底部）
         button_frame2 = ttk.Frame(which_text.master)
@@ -1896,11 +1912,18 @@ class SimplePostmanApp(tk.Tk):
 
         if pattern==1:
             # 自定义功能
-            select_btn1 = ttk.Button(button_frame1, text="Screenshot",command=lambda: self.thread_it(self.start_region_selection1(self)))
+            select_btn1 = ttk.Button(button_frame1, text="ScreenSee",command=lambda: self.thread_it(self.start_region_selection1(self)))
             select_btn1.pack(side=tk.LEFT, padx=2, pady=2)
 
             select_btn2 = ttk.Button(button_frame1, text="Choice",command=lambda: self.thread_it(self.select_image_for_ocr_tk()))
             select_btn2.pack(side=tk.LEFT, padx=2, pady=2)
+
+            only_screenshot_btn = ttk.Button(button_frame1, text="ScreenOnly",command=lambda: self.start_region_selection2())  # command=lambda: which_text.delete(1.0, tk.END))
+            only_screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
+        if pattern==2:
+            # 自定义功能
+            only_screenshot_btn = ttk.Button(button_frame1, text="ScreenOnly", command=lambda: self.start_region_selection2())  # command=lambda: which_text.delete(1.0, tk.END))
+            only_screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
         # 创建功能按钮的Frame（放在Text控件底部）
         button_frame2 = ttk.Frame(which_text.master)
@@ -1965,7 +1988,7 @@ class SimplePostmanApp(tk.Tk):
             button_frame6 = ttk.Frame(which_text.master, width=100)
             button_frame6.pack(side=tk.TOP, fill=tk.X)
             # 格式化json
-            screenshot_btn = ttk.Button(button_frame6, text="Screen",command=lambda: self.thread_it(self.start_region_selection2(self)))
+            screenshot_btn = ttk.Button(button_frame6, text="Screen",command=lambda: self.thread_it(self.start_region_selection2()))
             screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
     def insert_content_in_text(self,which_text,content):
@@ -1980,11 +2003,10 @@ class SimplePostmanApp(tk.Tk):
         self.region_window.overrideredirect(True)  # 移除窗口装饰
 
         # macOS专用透明设置
-        self.region_window.configure(bg='systemTransparent')
-        self.region_window.attributes('-transparent', True)
-        self.region_window.attributes('-alpha', 0.3)
+        self.region_window.configure(bg='systemTransparent')  # 设置背景为系统级透明
+        self.region_window.attributes('-transparent', True)  # 启用透明属性
+        self.region_window.attributes('-alpha', 0.8) # 边框整体透明度（0-1）
         self.region_window.attributes('-topmost', True)
-
         # 设置全屏尺寸
         screen_width = self.region_window.winfo_screenwidth()
         screen_height = self.region_window.winfo_screenheight()
@@ -2032,7 +2054,7 @@ class SimplePostmanApp(tk.Tk):
         # macOS专用透明设置
         self.region_window.configure(bg='systemTransparent')
         self.region_window.attributes('-transparent', True)
-        self.region_window.attributes('-alpha', 0.3)
+        self.region_window.attributes('-alpha', 0.7)
         self.region_window.attributes('-topmost', True)
 
         # 设置全屏尺寸
@@ -2071,7 +2093,7 @@ class SimplePostmanApp(tk.Tk):
         # 强制刷新
         self.region_window.update_idletasks()
 
-    def start_region_selection2(self, whichWin):
+    def start_region_selection2(self):
         """启动区域选择模式（修复颜色错误版）"""
         # whichWin.withdraw()   # 隐藏窗口
 
@@ -2082,7 +2104,7 @@ class SimplePostmanApp(tk.Tk):
         # macOS专用透明设置
         self.region_window.configure(bg='systemTransparent')
         self.region_window.attributes('-transparent', True)
-        self.region_window.attributes('-alpha', 0.3)
+        self.region_window.attributes('-alpha', 0.7)
         self.region_window.attributes('-topmost', True)
 
         # 设置全屏尺寸
@@ -2271,7 +2293,7 @@ class SimplePostmanApp(tk.Tk):
             #截图识别
             self.select_image_for_ocr_qa1(file_path)
 
-            self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
+            self.thread_it(self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini"))
 
         except Exception as e:
             tk.messagebox.showerror(" 错误", f"截图失败: {str(e)}")
