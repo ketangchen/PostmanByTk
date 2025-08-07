@@ -1695,8 +1695,8 @@ class SimplePostmanApp(tk.Tk):
                 self.seeImgToTxtByPaddleOcr(self.text_output, img_path, lang, pattern)
 
             except Exception as e:
-                self.left_img_output.insert("end", f"错误为：{e}")  # 插入异常描述
-                messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
+                self.left_img_output.insert("end", f"图片处理失败：{e}")  # 插入异常描述
+                #messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
 
     def select_image_for_ocr_qa(self):
         """Tkinter版本的选择图片方法"""
@@ -1760,7 +1760,8 @@ class SimplePostmanApp(tk.Tk):
 
 
             except Exception as e:
-                messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
+                self.left_text_output.insert(tk.END,f'图片处理失败: {e}')
+                #messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
 
     def select_image_for_ocr_qa1(self,img_path):
         if img_path:
@@ -1799,7 +1800,8 @@ class SimplePostmanApp(tk.Tk):
                 #save_qa_data(self.left_text_output.get("1.0", "end-1c"), self.right_text_output.get("1.0", "end-1c"))
 
             except Exception as e:
-                messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
+                self.left_text_output.insert(tk.END, f'图片处理失败: {e}')
+                #messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
 
     def select_image_for_ocr_tk1(self,img_path):
         if img_path:
@@ -1838,7 +1840,8 @@ class SimplePostmanApp(tk.Tk):
                 #save_qa_data(self.left_text_output.get("1.0", "end-1c"), self.right_text_output.get("1.0", "end-1c"))
 
             except Exception as e:
-                messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
+                self.left_img_output.insert(tk.END, f'图片处理失败: {e}')
+                #messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
 
     def seeOnly_imageText_via_ocr(self, img_path):
         if img_path:
