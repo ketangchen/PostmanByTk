@@ -142,13 +142,6 @@ def find_value_of_key_in_nested_dict(d, target_key):
             return r[1]
     return 'None'
 
-# 配置API（注意：使用的是非官方代理端点，可能存在风险）
-#openai.api_key = "sk-jaRSXNMxl1xdjOzu5e8e780c79Ee40D99aE43c0b74A90fF6"  # 建议改用环境变量
-openai.api_key=find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')),  "apiKey")[0]
-print(openai.api_key)
-openai.base_url = "https://free.v36.cm/v1/"  # 非官方端点
-openai.default_headers = {"x-foo": "true"}
-
 
 def write_xmind_data_to_excel(casePathDataList, caseType):
     """
@@ -686,6 +679,14 @@ class SimplePostmanApp(tk.Tk):
 
     def askAI(self, qtext, atext, model="gpt-4o-mini"):
         """单次提问函数"""
+        # 配置API
+        openai.api_key = \
+        find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')), "apiKey")[0]
+        openai.base_url = \
+        find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')), "apiURL")[0]
+        openai.default_headers = \
+        find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')), "apiHeaders")[0]
+
         question=qtext.get("1.0", tk.END)
         delay = 1.5
         self.messageInformInWin("提问中......", 3000)
@@ -718,6 +719,14 @@ class SimplePostmanApp(tk.Tk):
 
     def batch_askAI(self, questions, qtext, atext, model="gpt-4o-mini", delay=1.5):
         """批量提问函数"""
+        # 配置API
+        openai.api_key = \
+        find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')), "apiKey")[0]
+        openai.base_url = \
+        find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')), "apiURL")[0]
+        openai.default_headers = \
+        find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')), "apiHeaders")[0]
+
         results = []
         for idx, question in enumerate(questions, 1):
             try:
@@ -877,6 +886,32 @@ class SimplePostmanApp(tk.Tk):
         sub_window.grid_rowconfigure(5, weight=1)
 
         self.create_setBodyKey_sub_widgets(sub_window)
+
+    def create_SetLLM_sub_window(self):
+        # 创建设置入参子窗口
+        sub_window = tk.Toplevel(self)
+        try:
+            # 设置子窗口图标
+            sub_window.wm_iconbitmap(bitmap=f'{current_script_path}/happy.ico')
+        except:
+            pass
+        # 设置窗口背景颜色
+        sub_window.configure(bg='lightskyblue')
+        # 获取电脑分辨率
+        screen_width = sub_window.winfo_screenwidth()
+        screen_height = sub_window.winfo_screenheight()
+        # 设置坐标
+        x = (screen_width - 400) // 2
+        y = (screen_height - 300) // 2
+        # 设置应用名
+        sub_window.title("SetLLM")
+        # 设置展示位置
+        sub_window.geometry(f"{400}x{300}+{x + 655}+{y}")
+        # 设置窗口自适应
+        sub_window.grid_columnconfigure(1, weight=1)
+        sub_window.grid_rowconfigure(5, weight=1)
+
+        self.create_setLLM_sub_widgets(sub_window)
 
     def create_tools_sub_window(self):
 
@@ -1072,12 +1107,17 @@ class SimplePostmanApp(tk.Tk):
         # self.method_combobox.configure(style='TCombobox.Tooltip.TkDefault')
 
         # 选择前置登录接口记录的路径
-        self.before_login_buton = ttk.Button(self, text="BeforeLoginpath",
-                                             command=self.findLoginRecordFilePath)  # 组件按钮格式化功能
+        self.before_login_buton = ttk.Button(
+            self,
+            text="BeforeLoginpath",
+            command=self.findLoginRecordFilePath
+        )  # 组件按钮格式化功能
         self.before_login_buton.grid(column=2, row=1)
 
-        self.before_login_combobox = ttk.Combobox(self,
-                                                  values=[f'{current_script_path}/reguests_log/post数字员工请求登录demo.json'])
+        self.before_login_combobox = ttk.Combobox(
+            self,
+            values=[f'{current_script_path}/reguests_log/post数字员工请求登录demo.json']
+        )
         self.before_login_combobox.grid(column=3, row=1, sticky='EW')
         self.before_login_combobox.current(0)
 
@@ -1090,29 +1130,6 @@ class SimplePostmanApp(tk.Tk):
         # scrolledtext.ScrolledText内添加功能按钮
         self.add_function_buttons_in_request_text(self, self.headers_text, 0)
 
-        # self.headers_operation_combobox = ttk.Combobox(self, values=['Format', 'Copy', 'Paste', 'Clear'],
-        #                                                state='readonly')  # 组件按钮格式化功能
-        # self.headers_operation_combobox.grid(column=2, row=2)
-        # self.headers_operation_combobox.current(0)
-        # self.operation_headers_button = ttk.Button(self, text="Do",
-        #                                            command=lambda: self.combinateCommonOperation(self,self.headers_text,
-        #                                                                                          self.headers_operation_combobox))  # 组件按钮格式化功能
-        # self.operation_headers_button.grid(column=3, row=2)
-
-        # self.format_headers_button = ttk.Button(self, text="Format Headers", command=lambda:self.format_content(self.headers_text))# 组件按钮格式化功能
-        # self.format_headers_button.grid(column=2, row=2)
-        #
-        # self.copy_headers_button = ttk.Button(self,text='Copy', command=lambda:self.copy_content(self.headers_text))#组件按钮格式化功能
-        # self.copy_headers_button.grid(column=3,row=2)
-        #
-        # # 清空响应结果
-        # self.clear_headers_btn = tk.Button(self, text="Clear", command=lambda: self.clear(self.headers_text)) # 带参
-        # self.clear_headers_btn.grid(column=2,row=3)
-        #
-        # # 粘贴板内容带入并清空响应结果
-        # self.paste_body_btn = tk.Button(self, text="Paste", command=lambda: self.paste(self, self.headers_text))  # 带
-        # self.paste_body_btn.grid(column=3, row=3)
-
         # Body输入
         self.body_label = ttk.Label(self, text="Body (JSON) :")
         self.body_label.grid(column=0, row=4)
@@ -1122,29 +1139,6 @@ class SimplePostmanApp(tk.Tk):
         # scrolledtext.ScrolledText内添加功能按钮
         self.add_function_buttons_in_request_text(self, self.body_text, 0)
 
-        # self.body_operation_combobox = ttk.Combobox(self, values=['Format', 'Copy', 'Paste', 'Clear'],
-        #                                             state='readonly')  # 组件按钮格式化功能
-        # self.body_operation_combobox.grid(column=2, row=4)
-        # self.body_operation_combobox.current(0)
-        # self.operation_body_button = ttk.Button(self, text="Do",
-        #                                         command=lambda: self.combinateCommonOperation(self, self.body_text,
-        #                                                                                       self.body_operation_combobox))  # 组件按钮格式化功能
-        # self.operation_body_button.grid(column=3, row=4)
-
-        # self.fommat_body_button = ttk.Button(self, text="Format Body", command=lambda:self.format_content(self.body_text)) # 组件按钮格式化功能
-        # self.fommat_body_button.grid(column=2,row=4)
-        #
-        # self.copy_body_button = ttk.Button(self, text="Copy", command=lambda:self.copy_content (self.body_text))  # 组件按钮格式化功能
-        # self.copy_body_button.grid(column=3,row=4)
-        #
-        # # 清空响应结果
-        # self.clear_body_btn = tk.Button(self, text="Clear", command=lambda: self.clear(self.body_text)) # 带参
-        # self.clear_body_btn.grid(column=2,row=5)
-        #
-        # # 粘贴板内容带入并清空响应结果
-        # self.paste_body_btn = tk.Button(self, text="paste",command=lambda: self.paste(self, self.body_text)) # 带参
-        # self.paste_body_btn.grid(column=3, row=5)
-
         from tkinter.font import Font
         bold_font = Font(family='Helvetica', size=10, weight='bold')
 
@@ -1153,8 +1147,14 @@ class SimplePostmanApp(tk.Tk):
         self.send_label.grid(column=0, row=6)
 
         # self,send_button = ttk,Button(self,text="Send", command=self.send_request)不加线程的话会一直不回弹,导致主线程卡死
-        self.send_button = tk.Button(self, text="Send", bg='#FFB6C1', fg='black', font=bold_font,
-                                     command=lambda: self.thread_it(self.send_request_by_userInputData))  # 加线程
+        self.send_button = tk.Button(
+            self,
+            text="Send",
+            bg='#FFB6C1',
+            fg='black',
+            font=bold_font,
+            command=lambda: self.thread_it(self.send_request_by_userInputData)
+        )  # 加线程
         self.send_button.grid(column=1, row=6, sticky='EW')
 
         # #复制案件号
@@ -1162,9 +1162,12 @@ class SimplePostmanApp(tk.Tk):
         # self.copy_response_key_btn.grid(column=2, row=4)
 
         # 复制关键字对应的值
-        self.select_key_btn = tk.Button(self, text="CopyResKey", anchor="c",
-                                        command=lambda: self.copy_value_of_key(self, self.response_text,
-                                                                               self.select_key_combobox.get()))
+        self.select_key_btn = tk.Button(
+            self,
+            text="CopyResKey",
+            anchor="c",
+            command=lambda: self.copy_value_of_key(self, self.response_text,self.select_key_combobox.get())
+        )
         self.select_key_btn.grid(column=2, row=8)
 
         # 设置关键字输入框
@@ -1175,9 +1178,11 @@ class SimplePostmanApp(tk.Tk):
             read_json_file(f'{current_script_path}/configini.json'), "CopyKey")
         self.select_key_combobox.current(0)  # 设置默认值为列表中的第一个元素
 
-        self.refresh_response_text_key_button = ttk.Button(self, text="RefreshKey",
-                                                           command=lambda: self.refreshKey(self.response_text,
-                                                                                           self.select_key_combobox))
+        self.refresh_response_text_key_button = ttk.Button(
+            self,
+            text="RefreshKey",
+            command=lambda: self.refreshKey(self.response_text,self.select_key_combobox)
+        )
         self.refresh_response_text_key_button.grid(column=2, row=7)
 
         # Response响应输出
@@ -1189,33 +1194,13 @@ class SimplePostmanApp(tk.Tk):
         # scrolledtext.ScrolledText内添加功能按钮
         self.add_function_buttons_in_request_text(self, self.response_text, 1)
 
-        # self.response_operation_combobox = ttk.Combobox(self, values=['Format', 'Copy', 'Paste', 'Clear'],
-        #                                                 state='readonly')  # 组件按钮格式化功能
-        # self.response_operation_combobox.grid(column=2, row=8)
-        # self.response_operation_combobox.current(3)
-        # self.operation_response_button = ttk.Button(self, text="Do", command=lambda: self.combinateCommonOperation(self,
-        #                                                                                                            self.response_text,
-        #                                                                                                            self.response_operation_combobox))  # 组件按钮格式化功能
-        # self.operation_response_button.grid(column=3, row=8)
-
-        # self.format_response_button = tk.Button(self, text='Format Response', anchor='c', command=lambda: self.format_content(self.response_text))  # 组件按钮格式化功能
-        # self.format_response_button.grid(column=2,row=8)
-        #
-        # self.format_response_button = tk.Button(self, text="Copy",anchor='c',command=lambda:self.copy_content(self.response_text))# 组件按钮格式化功能
-        # self.format_response_button.grid(column=3,row=8)
-        #
-        # # 清空响应结果
-        # self.clear_response_btn = tk.Button(self, text="Clear", command=lambda: self.clear(self.response_text))  # 带参
-        # #self.clear_response_btn = tk.Button(self, text="Clear", command=self.clear)#不带参数
-        # self.clear_response_btn.grid(column=2,row=9)
-        #
-        # # 粘贴板内容带入并清空响应结果
-        # self.paste_response_btn = tk.Button(self, text="paste", command=lambda: self.paste(self, self.response_text))  # 带参
-        # self.paste_response_btn.grid(column=3,row=9)
-
         # 搜索按钮
-        self.search_btn = tk.Button(self, text="FindReskey", anchor="c",
-                                    command=lambda: self.search_text(self.search_combobox.get()))
+        self.search_btn = tk.Button(
+            self,
+            text="FindReskey",
+            anchor="c",
+            command=lambda: self.search_text(self.search_combobox.get())
+        )
         self.search_btn.grid(column=2, row=10)
         # 搜索response关键字结果
         self.search_combobox = ttk.Combobox(self, state='NORMAL')
@@ -1225,32 +1210,39 @@ class SimplePostmanApp(tk.Tk):
         self.search_combobox.current(0)  # 设置默认值为列表中的第一个元素
 
         self.set_button_Tools = tk.Button(self, text="BusinessTools", command=self.create_tools_sub_window)  # 组件按钮格式化功能
-        self.set_button_Tools.grid(column=2,
-                             row=11)  # self,set button = tk.Button(self, text="json",command=self,find_file_to_fill_record) # 组件按纽定将式化函教功能# self.set button.grid(column=2，row=1)
+        self.set_button_Tools.grid(column=2,row=11)
 
         self.set_button_ChangeImg = tk.Button(self, text="ChangeImg", command=self.create_tools_sub_window1)  # 组件按钮格式化功能
-        self.set_button_ChangeImg.grid(column=2,
-                             row=12)  # self,set button = tk.Button(self, text="json",command=self,find_file_to_fill_record) # 组件按纽定将式化函教功能# self.set button.grid(column=2，row=1)
+        self.set_button_ChangeImg.grid(column=2,row=12)
 
         self.set_button_SeeImgToTxt = tk.Button(self, text="SeeImgToTxt", command=self.create_tools_sub_window2)  # 组件按钮格式化功能
-        self.set_button_SeeImgToTxt.grid(column=2,
-                             row=13)  # self,set button = tk.Button(self, text="json",command=self,find_file_to_fill_record) # 组件按纽定将式化函教功能# self.set button.grid(column=2，row=1)
+        self.set_button_SeeImgToTxt.grid(column=2,row=13)
 
-        self.set_button_QaByAI = tk.Button(self, text="QaByAI", command=self.create_tools_sub_window3)  # 组件按钮格式化功能
-        self.set_button_QaByAI.grid(column=2,row=14)  # self,set button = tk.Button(self, text="json",command=self,find_file_to_fill_record) # 组件按纽定将式化函教功能# self.set button.grid(column=2，row=1)
+        self.set_button_QaByAI = tk.Button(self, text="QaByLLM", command=self.create_tools_sub_window3)  # 组件按钮格式化功能
+        self.set_button_QaByAI.grid(column=2,row=14)
+        self.set_button_setLLM = tk.Button(self, text="SetLLM", command=self.create_SetLLM_sub_window)  # 组件按钮格式化功能
+        self.set_button_setLLM.grid(column=3,row=14)
 
         self.set_button_screenshot = tk.Button(self, text="ScreenSub", command=self.create_tools_sub_window4)  # 组件按钮格式化功能
         self.set_button_screenshot.grid(column=2,row=15)
 
-        self.select_record_button = tk.Button(self, text="Select Records:", anchor='c',
-                                              command=self.find_file_to_fill_record)  #
+        self.select_record_button = tk.Button(
+            self,
+            text="Select Records:",
+            anchor='c',
+            command=self.find_file_to_fill_record
+        )  #
         self.select_record_button.grid(column=0, row=20)
         self.record_combobox = ttk.Combobox(self, state='readonly', width=50)
         self.record_combobox.grid(column=1, row=20, sticky='EW')
         self.record_combobox.bind('<<ComboboxSelected>>', self.fill_record)
 
-        self.delete_record_button = tk.Button(self, text="Delete Records", anchor='c',
-                                              command=lambda: self.thread_it(self.delete_records))
+        self.delete_record_button = tk.Button(
+            self,
+            text="Delete Records",
+            anchor='c',
+            command=lambda: self.thread_it(self.delete_records)
+        )
         self.delete_record_button.grid(column=2, row=20)
 
         # 为匹配文本定义样式
@@ -1272,10 +1264,15 @@ class SimplePostmanApp(tk.Tk):
         sub_win.surveyUm_combobox.current(0)  # 设置默认值为列表中的第一个元素
         print(sub_win.surveyUm_combobox.get())
 
+        # JSON文件名为configin.json
+        json_file_path = f'{current_script_path}/configini.json'
+
         # 保存surveyUm
-        sub_win.set_surveyUm_button = ttk.Button(sub_win, text="save",
-                                                 command=lambda: self.changeKeyValueInJsonFile('surveyUm',
-                                                                                               sub_win.surveyUm_combobox.get()))  # 组件按期定格式
+        sub_win.set_surveyUm_button = ttk.Button(
+            sub_win,
+            text="save",
+            command=lambda: self.changeKeyValueInJsonFile(json_file_path,'surveyUm',sub_win.surveyUm_combobox.get())
+        )  # 组件按期定格式
         sub_win.set_surveyUm_button.grid(column=2, row=0)
 
         # surveyUmphone标签
@@ -1287,9 +1284,11 @@ class SimplePostmanApp(tk.Tk):
         sub_win.surveyUmphone_combobox['values'] = ['17374899426']
         sub_win.surveyUmphone_combobox.current(0)  # 设置默认值为列表中的第一个元素
         # 保存surveyUmphone
-        sub_win.set_surveyumphone_button = ttk.Button(sub_win, text="save",
-                                                      command=lambda: self.changeKeyValueInJsonFile("surveyumphone",
-                                                                                                    sub_win.surveyUmphone_combobox.get()))
+        sub_win.set_surveyumphone_button = ttk.Button(
+            sub_win,
+            text="save",
+            command=lambda: self.changeKeyValueInJsonFile(json_file_path,"surveyumphone",sub_win.surveyUmphone_combobox.get())
+        )
         sub_win.set_surveyumphone_button.grid(column=2, row=1)
 
         # mobileNo标签
@@ -1301,9 +1300,11 @@ class SimplePostmanApp(tk.Tk):
         sub_win.mobileNo_combobox['values'] = ['17374899426']
         sub_win.mobileNo_combobox.current(0)  # 设置默认值为列表中的第一个元素
         # 保存mobileNo
-        sub_win.set_mobileNo_button = ttk.Button(sub_win, text="save",
-                                                 command=lambda: self.changeKeyValueInJsonFile('mobileNo',
-                                                                                               sub_win.mobileNo_combobox.get()))  # 组件按钮绑定格式化函数功能
+        sub_win.set_mobileNo_button = ttk.Button(
+            sub_win,
+            text="save",
+            command=lambda: self.changeKeyValueInJsonFile(json_file_path,'mobileNo',sub_win.mobileNo_combobox.get())
+        )  # 组件按钮绑定格式化函数功能
         sub_win.set_mobileNo_button.grid(column=2, row=2)
 
         # 选取修改headers里的键值
@@ -1315,9 +1316,11 @@ class SimplePostmanApp(tk.Tk):
         sub_win.headers_text_key_combobox["values"] = ["Authorization", "Content-Type", "X-Portal-Token", "Cookie"]
         sub_win.headers_text_key_combobox.current(0)  # 设置默认值为列表中的第一个元素
         # 刷新键值
-        sub_win.refresh_headers_text_keyValue_button = ttk.Button(sub_win, text="refreshKey",
-                                                                  command=lambda: self.refreshKey(self.headers_text,
-                                                                                                  sub_win.headers_text_key_combobox))
+        sub_win.refresh_headers_text_keyValue_button = ttk.Button(
+            sub_win,
+            text="refreshKey",
+            command=lambda: self.refreshKey(self.headers_text,sub_win.headers_text_key_combobox)
+        )
         sub_win.refresh_headers_text_keyValue_button.grid(column=2, row=10)
 
         # 修改headers里的键值
@@ -1329,11 +1332,15 @@ class SimplePostmanApp(tk.Tk):
         sub_win.headers_text_keyValue_combobox['values'] = ['456']
         sub_win.headers_text_keyValue_combobox.current(0)  # 设置默认值为列表中的第一个元素
         # 更改键值
-        sub_win.set_headers_text_keyValue_button = ttk.Button(sub_win, text="change",
-                                                              command=lambda: self.changeKeyValueInJsonstr(
-                                                                  self.headers_text,
-                                                                  sub_win.headers_text_key_combobox.get(),
-                                                                  sub_win.headers_text_keyValue_combobox.get()))
+        sub_win.set_headers_text_keyValue_button = ttk.Button(
+            sub_win,
+            text="change",
+            command=lambda: self.changeKeyValueInJsonstr(
+                self.headers_text,
+                sub_win.headers_text_key_combobox.get(),
+                sub_win.headers_text_keyValue_combobox.get()
+            )
+        )
         sub_win.set_headers_text_keyValue_button.grid(column=2, row=11)
 
         # 选取修改body里的键值
@@ -1345,9 +1352,11 @@ class SimplePostmanApp(tk.Tk):
         sub_win.body_text_key_combobox['values'] = ["reportNo", "businessKey"]
         sub_win.body_text_key_combobox.current(0)  # 设置默认值为列表中的第一个元素
         # 刷新键值
-        sub_win.refresh_body_text_keyValue_button = ttk.Button(sub_win, text="refreshkey",
-                                                               command=lambda: self.refreshKey(self.body_text,
-                                                                                               sub_win.body_text_key_combobox))
+        sub_win.refresh_body_text_keyValue_button = ttk.Button(
+            sub_win,
+            text="refreshkey",
+            command=lambda: self.refreshKey(self.body_text,sub_win.body_text_key_combobox)
+        )
         sub_win.refresh_body_text_keyValue_button.grid(column=2, row=12)
 
         # 修改body里的键值
@@ -1359,11 +1368,93 @@ class SimplePostmanApp(tk.Tk):
         sub_win.body_text_keyValue_combobox['values'] = ['456']
         sub_win.body_text_keyValue_combobox.current(0)  # 设置默认值为列表中的第一个元素
         # 更改键值
-        sub_win.set_body_text_keyValue_button = ttk.Button(sub_win, text="change",
-                                                           command=lambda: self.changeKeyValueInJsonstr(self.body_text,
-                                                                                                        sub_win.body_text_key_combobox.get(),
-                                                                                                        sub_win.body_text_keyValue_combobox.get()))
+        sub_win.set_body_text_keyValue_button = ttk.Button(
+            sub_win,
+            text="change",
+            command=lambda: self.changeKeyValueInJsonstr(
+                self.body_text,
+                sub_win.body_text_key_combobox.get(),
+                sub_win.body_text_keyValue_combobox.get()
+            )
+        )
         sub_win.set_body_text_keyValue_button.grid(column=2, row=13)
+
+    def create_setLLM_sub_widgets(self, sub_win):
+        # apiURL标签
+        sub_win.apiURL_label = ttk.Label(sub_win, text="apiURL:")
+        sub_win.apiURL_label.grid(column=0, row=0)
+        # 选择apiURL
+        sub_win.apiURL_combobox = ttk.Combobox(sub_win, state='NORMAL')
+        sub_win.apiURL_combobox.grid(column=1, row=0, sticky='Ew')
+        # 获取配置里的apiKey
+        apiURLList = read_json_file(f'{current_script_path}/configini.json')['apiURL']
+        sub_win.apiURL_combobox['values'] = apiURLList
+        sub_win.apiURL_combobox.current(0)  # 设置默认值为列表中的第一个元素
+        print(sub_win.apiURL_combobox.get())
+        # 保存apiURL
+        # JSON文件名为configin.json
+        json_file_path = f'{current_script_path}/configini.json'
+        sub_win.set_apiURL_button = ttk.Button(
+            sub_win, text="save",
+            command=lambda: self.changeKeyValueInJsonFile1(
+                json_file_path,
+                'apiURL',
+                sub_win.apiURL_combobox.get(),
+                0
+            )
+        )  # 组件按期定格式
+        sub_win.set_apiURL_button.grid(column=2, row=0)
+
+        # apiKey标签
+        sub_win.apiKey_label = ttk.Label(sub_win, text="apiKey:")
+        sub_win.apiKey_label.grid(column=0, row=1)
+        # 选择apiKey
+        sub_win.apiKey_combobox = ttk.Combobox(sub_win, state='NORMAL')
+        sub_win.apiKey_combobox.grid(column=1, row=1, sticky='Ew')
+        # 获取配置里的apiKey
+        apiKeyList = read_json_file(f'{current_script_path}/configini.json')['apiKey']
+        sub_win.apiKey_combobox['values'] = apiKeyList
+        sub_win.apiKey_combobox.current(0)  # 设置默认值为列表中的第一个元素
+        print(sub_win.apiKey_combobox.get())
+        # 保存apiKey
+        # JSON文件名为configin.json
+        json_file_path = f'{current_script_path}/configini.json'
+        sub_win.set_apiKey_button = ttk.Button(
+            sub_win, text="save",
+            command=lambda: self.changeKeyValueInJsonFile1(
+                json_file_path,
+                'apiKey',
+                sub_win.apiKey_combobox.get(),
+                0
+            )
+        )  # 组件按期定格式
+        sub_win.set_apiKey_button.grid(column=2, row=1)
+
+
+        # apiHeaders标签
+        sub_win.apiHeaders_label = ttk.Label(sub_win, text="apiHeaders:")
+        sub_win.apiHeaders_label.grid(column=0, row=2)
+        # 选择apiHeaders
+        sub_win.apiHeaders_combobox = ttk.Combobox(sub_win, state='NORMAL')
+        sub_win.apiHeaders_combobox.grid(column=1, row=2, sticky='EW')
+        # 获取配置里的apiHeaders
+        apiHeadersList = read_json_file(f'{current_script_path}/configini.json')['apiHeaders']
+        sub_win.apiHeaders_combobox['values'] = apiHeadersList
+        sub_win.apiHeaders_combobox.current(0)  # 设置默认值为列表中的第一个元素
+        print(f'列表中的第一个元素:{sub_win.apiHeaders_combobox.get()}')
+
+        # 保存apiHeaders
+        sub_win.set_apiHeaders_button = ttk.Button(
+            sub_win,
+            text="save",
+            command=lambda: self.changeKeyValueInJsonFile1(
+                json_file_path,
+                'apiHeaders',
+                sub_win.apiHeaders_combobox.get(),
+                1
+            )
+        )  # 组件按钮绑定格式化函数功能
+        sub_win.set_apiHeaders_button.grid(column=2, row=2)
 
     def create_business_tools_sub_widgets(self, sub_win):
         sub_win.output_text = scrolledtext.ScrolledText(sub_win, width=30, height=20, bg="lightskyblue")
@@ -2777,11 +2868,8 @@ class SimplePostmanApp(tk.Tk):
             which_text.insert(tk.END, f'更新异常: {e}')
             pass
 
-    def changeKeyValueInJsonFile(self, key_to_modify, new_value):
+    def changeKeyValueInJsonFile(self, json_file_path,key_to_modify, new_value):
         try:
-            # JSON文件名为configin.json
-            json_file_path = f'{current_script_path}/configini.json'
-
             # 读取JSON文件
             data = read_json_file(json_file_path)
 
@@ -2824,6 +2912,42 @@ class SimplePostmanApp(tk.Tk):
             print(display)
         except Exception as e:
             self.body_text.insert(tk.END, f'更新异常: {e}')
+            pass
+
+    def changeKeyValueInJsonFile1(self, json_file_path,key_to_modify, new_value,pattern):
+        try:
+            # 读取JSON文件
+            data = read_json_file(json_file_path)
+            if not isinstance(data, dict):
+                data = json.loads(data)
+
+            # 修改键值，假设要修改"key_to_modify"的值，注意还没写进去文件里
+            if pattern==0:
+                if key_to_modify in data and new_value not in data[key_to_modify]:
+                    data[key_to_modify].append(new_value)
+                    # 写回JSON文件
+                    with open(json_file_path, 'w', encoding=encodingType) as file:
+                        json.dump(data, file, ensure_ascii=False, indent=4)
+                    self.messageInformInWin(f'modification is successful!', 2000)
+                else:
+                    self.messageInformInWin(f'modification exists repeatation!', 2000)
+            elif pattern==1:
+                try:
+                    new_value = new_value.replace('\'', '\"')
+                    new_value = json.loads(new_value)
+                except:
+                    pass
+                if key_to_modify in data and new_value not in data[key_to_modify]:
+                    data[key_to_modify].append(new_value)
+                    print(new_value, data[key_to_modify])
+                    # 写回JSON文件
+                    with open(json_file_path, 'w', encoding=encodingType) as file:
+                        json.dump(data, file, ensure_ascii=False, indent=4)
+                    self.messageInformInWin(f'modification is successful!', 2000)
+                else:
+                    self.messageInformInWin(f'modification exists repeatation!', 2000)
+        except Exception as e:
+            self.messageInformInWin(f'modification is unsuccessful!',2000)
             pass
 
     # 设置线程，避免窗口回弹崩溃
