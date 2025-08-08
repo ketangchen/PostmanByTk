@@ -39,6 +39,7 @@ from tkinter import Canvas, Toplevel
 from PIL import ImageGrab, ImageTk
 import time
 from openpyxl.styles import Border, Side, PatternFill
+import pandas as pd
 
 """
 /usr/local/bin/python3.7 -m pip install yourmodel -i https://pypi.tuna.tsinghua.edu.cn/simple
@@ -702,6 +703,7 @@ class SimplePostmanApp(tk.Tk):
             # 打印当前结果
             print(f"【问题】{question}\n【回答】{answer}\n")
             save_qa_data(question,answer)
+            self.continuing_save_question_and_ask(question,answer)
             self.clearContent(atext)
             atext.insert(tk.END,f'{answer}')
             self.load_qa_records(self.qa_record_combo)
@@ -739,6 +741,89 @@ class SimplePostmanApp(tk.Tk):
                 results.append((question, f"ERROR: {str(e)}"))
 
         #return results
+
+    def read_all_rows_from_excel(file_path):
+        """
+        读取Excel文件中所有工作表的每一行数据
+        参数:
+        file_path (str): 输入文件路径
+        返回:
+        dict: 以工作表名为键，包含该表所有行数据的列表为值的字典
+        """
+        try:
+            # 使用ExcelFile对象提高读取效率
+            excel_file = pd.ExcelFile(file_path)
+            sheet_data = {}
+            questions = []
+
+            # 遍历每个工作表
+            for sheet_name in excel_file.sheet_names:
+                # 读取整个工作表
+                df = excel_file.parse(sheet_name)
+
+                # 将DataFrame转换为行数据列表（每行转为字典）
+                rows = df.to_dict('records')
+                sheet_data[sheet_name] = rows
+
+                # 打印预览信息
+                print(f"\n工作表 '{sheet_name}' 共 {len(rows)} 行数据:")
+                print("列名:", df.columns.tolist())
+                print(f"{sheet_name}会议的所有论文:")
+                for i, row in enumerate(rows):
+                    print(f"第{i + 1}行: {row}")
+                    print(type(row))  ##<class 'dict'>
+                    conference = sheet_name
+                    year = row['年份']
+                    title = "《" + row['论文'] + "》"
+                    authors = row['作者'].replace(",", "、")
+                    keys = row['关键字分类问题'].replace(",", "、")
+                    question = f"{title}这篇论文是{year}年在软件工程领域的学术会议{conference}上已经发表的论文，作者包括{authors}，请结合这篇论文{title}和它对应的{keys}等关键字，" \
+                               f"分析下这篇论文是不是在软件工程领域程序分析的相关的论文。如果是，请把它在程序分析领域更细化的研究方向用一个核心简单英文词组概括输出；" \
+                               f"如果不是，请把它的研究方向用一个核心简单英文词组概括输出。输出内容包括（要求各内容用英文逗号分隔）：论文研究内容是否属于软件工程领域程序分析方向（只答是或者否，必须是英文输出）、论文所属领域（必须是英文输出）、核心简单英文词组（必须是英文输出）"
+                    print(question)
+                    questions.append(question)
+
+            return questions
+
+        except FileNotFoundError:
+            print(f"错误: 文件未找到 - {file_path}")
+            return None
+        except Exception as e:
+            print(f"错误: 处理文件时发生错误 - {e}")
+            return None
+
+    def continuing_save_question_and_ask(self,qtex,atex):
+        """逐次存储问答数据"""
+        question=qtex
+        answer=atex
+        save_qa_file="save_qa_file.xlsx"
+        # 创建新的Excel工作簿
+        if not os.path.exists(save_qa_file):
+            pd.DataFrame(columns=["时间", "问题", "回答"]).to_excel(save_qa_file, index=False)
+        try:
+            # 读取现有数据
+            try:
+                df_existing = pd.read_excel(save_qa_file)
+            except:
+                df_existing = pd.DataFrame(columns=["时间", "问题", "回答"])
+            # 追加新数据
+            df_new = pd.DataFrame([[getCurrentTimeInfo1(), question, answer]], columns=["时间", "问题", "回答"])
+            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+            # 写入Excel
+            df_combined.to_excel(save_qa_file, index=False)
+        except Exception as e:
+            print(f"ERROR: {str(e)}")
+            error_msg = f"ERROR: {str(e)}"
+            # 即使出错也写入Excel
+            try:
+                df_existing = pd.read_excel(save_qa_file)
+            except:
+                df_existing = pd.DataFrame(columns=["时间", "问题", "回答"])
+            # 追加新数据
+            df_new = pd.DataFrame([[getCurrentTimeInfo1(), question, error_msg]], columns=["时间", "问题", "回答"])
+            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+            # 写入Excel
+            df_combined.to_excel(save_qa_file, index=False)
 
     def write_xmind_to_excel(self, which_combobox):
         # 设置文件类型过滤器，只显示XMind文件(.xmind)
