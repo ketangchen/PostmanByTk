@@ -629,19 +629,19 @@ class SimplePostmanApp(tk.Tk):
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         # 设置坐标
-        x = (screen_width - 950) // 2
-        y = (screen_height - 775) // 2
+        x = (screen_width - 1250) // 2
+        y = (screen_height - 750) // 2
         # 设置应用名
         self.title("simplepostman1.0")
         # 设置展示位置
-        self.geometry(f"{950}x{775}+{x}+{y-50}")
+        self.geometry(f"{1250}x{750}+{x}+{y-50}")
 
         # 设置窗口自适应
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(5, weight=1)
 
         # 界面布局设置
-        self.create_mainWin_widgets()
+        self.create_mainWin_widgets_for_tkText_pack()
 
         # 初始化加载历史记录
         self.load_records()
@@ -1125,12 +1125,12 @@ class SimplePostmanApp(tk.Tk):
         screen_width = sub_window.winfo_screenwidth()
         screen_height = sub_window.winfo_screenheight()
         # 设置坐标
-        x = (screen_width - 1200) // 2
+        x = (screen_width - 1300) // 2
         y = (screen_height - 600) // 2
         # 设置应用名
         sub_window.title("QaByLLM")
         # 设置窗口展示位置和大小
-        sub_window.geometry(f"{1200}x{600}+{x}+{y}")
+        sub_window.geometry(f"{1300}x{600}+{x}+{y}")
         # 设置窗口自适应
         sub_window.grid_columnconfigure(1, weight=1)
         sub_window.grid_rowconfigure(5, weight=1)
@@ -1184,7 +1184,6 @@ class SimplePostmanApp(tk.Tk):
         ns_window.setCollectionBehavior_(1 << 3)  # 1<<3 为
 
     def change_picture_format(self):
-
         # # 创建设置子窗口
         # sub_window = tk.Toplevel(self)
         # # 不显示子窗口
@@ -1212,12 +1211,278 @@ class SimplePostmanApp(tk.Tk):
         font=Font(family=family, size=size, weight=weight)
         return font
 
-    def create_mainWin_widgets(self):
+    def create_mainWin_widgets_for_tkText_pack(self):
+        # 主容器布局（横向分左中右三部分）
+        left_frame = tk.Frame(self)
+        center_frame = tk.Frame(self)
+        right_frame = tk.Frame(self)
+        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        center_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        right_frame.pack(side=tk.LEFT, fill=tk.Y)
+
+        # --- URL输入区域 ---
+        url_frame = tk.Frame(left_frame)
+        url_frame.pack(fill=tk.X, pady=2)
+
+        self.url_label = tk.Label(
+            url_frame,
+            background='white',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',
+            text="URL:"
+        )
+        self.url_label.pack(side=tk.LEFT)
+
+        self.url_entry = tk.Entry(url_frame, bg="lightskyblue")
+        self.url_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # --- 方法选择区域 ---
+        method_frame = tk.Frame(left_frame)
+        method_frame.pack(fill=tk.X, pady=2)
+
+        self.method_label = tk.Label(
+            method_frame,
+            background='white',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',
+            text="Method:"
+        )
+        self.method_label.pack(side=tk.LEFT)
+
+        self.method_combobox = ttk.Combobox(
+            method_frame,
+            values=["GET", "POST", "PUT", "DELETE"]
+        )
+        self.method_combobox.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.method_combobox.current(0)
+
+        # --- Headers输入区域 ---
+        headers_frame = tk.Frame(left_frame)
+        headers_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+
+        self.headers_label = tk.Label(
+            headers_frame,
+            background='white',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',
+            text="Headers(JSON):"
+        )
+        self.headers_label.pack(anchor='w')
+
+        # self.headers_text = scrolledtext.ScrolledText(
+        headers_scrollbar = tk.Scrollbar(headers_frame)
+        self.headers_text = tk.Text(
+            headers_frame,
+            yscrollcommand=headers_scrollbar.set,
+            background='lightblue',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',
+            width=45,
+            height=10,
+            bg="lightskyblue"
+        )
+        self.headers_text.pack(fill=tk.BOTH, expand=True)
+        self.add_function_buttons_in_request_text_for_tkText_pack(headers_frame, self.headers_text, 1)
+        headers_scrollbar.config(command=self.headers_text.yview)
+
+        # --- Body输入区域 ---
+        body_frame = tk.Frame(left_frame)
+        body_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+
+        self.body_label = tk.Label(
+            body_frame,
+            background='white',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',
+            text="Body(JSON):"
+        )
+        self.body_label.pack(anchor='w')
+
+        # self.body_text = scrolledtext.ScrolledText(
+        body_scrollbar = tk.Scrollbar(body_frame)
+        self.body_text = tk.Text(
+            body_frame,
+            yscrollcommand=body_scrollbar.set,
+            background='lightblue',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',
+            width=45,
+            height=15,
+            bg="lightskyblue"
+        )
+        self.body_text.pack(fill=tk.BOTH, expand=True)
+        self.add_function_buttons_in_request_text_for_tkText_pack(body_frame, self.body_text, 1)
+        body_scrollbar.config(command=self.body_text.yview)
+
+        # --- 发送按钮 ---
+        login_seting_frame = tk.Frame(left_frame)
+        login_seting_frame.pack(fill=tk.X, pady=5)
+
+        # 选择前置登录接口记录的路径
+        self.before_login_buton = tk.Button(
+            login_seting_frame,
+            text="BeforeLoginPath",
+            command=self.findLoginRecordFilePath
+        )
+        self.before_login_buton.pack(side=tk.LEFT)
+
+        self.before_login_combobox = ttk.Combobox(
+            login_seting_frame,
+            values=[f'{current_script_path}/reguests_log/post数字员工请求登录demo.json']
+        )
+        self.before_login_combobox.pack(side=tk.LEFT)
+        self.before_login_combobox.current(0)
+
+        # --- 发送按钮 ---
+        send_frame = tk.Frame(left_frame)
+        send_frame.pack(fill=tk.X, pady=5)
+
+        self.send_label = tk.Label(
+            send_frame,
+            background='white',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',
+            text="Send Request:"
+        )
+        self.send_label.pack(side=tk.LEFT)
+
+        self.send_button = tk.Button(
+            send_frame,
+            text="Send",
+            bg='#FFB6C1',
+            fg='black',
+            font=self.set_font_size('Song', 12, 'normal'),
+            command=lambda: self.thread_it(self.send_request_by_userInputData)
+        )
+        self.send_button.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+
+        # --- Response输出区域 ---
+        response_frame = tk.Frame(center_frame)
+        response_frame.pack(fill=tk.BOTH, expand=True)
+
+        self.response_label = tk.Label(
+            response_frame,
+            background='white',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',
+            text="Response(JSON):"
+        )
+        self.response_label.pack(anchor='w')
+
+        # self.response_text = scrolledtext.ScrolledText(
+        response_scrollbar = tk.Scrollbar(response_frame)
+        self.response_text = tk.Text(
+            response_frame,
+            yscrollcommand=response_scrollbar.set,
+            background='lightblue',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',
+            width=45,
+            height=10,
+            bg="lightskyblue"
+        )
+        self.response_text.pack(fill=tk.BOTH, expand=True)
+        self.add_function_buttons_in_request_text_for_tkText_pack(response_frame, self.response_text, 1)
+        response_scrollbar.config(command=self.response_text.yview)
+
+        # --- 右侧功能按钮区域 ---
+        self.set_button = tk.Button(right_frame, text="Setkey", command=self.create_SetBodyKey_sub_window)
+        self.set_button.pack(fill=tk.X, pady=2)
+
+        self.set_button_modifyExcel = tk.Button(right_frame, text="modifyExcel", command=self.create_modify_excel_sub_window)
+        self.set_button_modifyExcel.pack(fill=tk.X, pady=2)
+
+        self.set_button_businessTools = tk.Button(right_frame, text="BusinessTools", command=self.create_tools_sub_window)
+        self.set_button_businessTools.pack(fill=tk.X, pady=2)
+
+        self.set_button_ChangeImg = tk.Button(right_frame, text="ChangeImg", command=self.create_tools_sub_window1)
+        self.set_button_ChangeImg.pack(fill=tk.X, pady=2)
+
+        self.set_button_SeeImgToTxt = tk.Button(right_frame, text="SeeImgToTxt", command=self.create_tools_sub_window2)
+        self.set_button_SeeImgToTxt.pack(fill=tk.X, pady=2)
+
+        self.set_button_QaByAI = tk.Button(right_frame, text="QaByLLM", command=self.create_tools_sub_window3)
+        self.set_button_QaByAI.pack(fill=tk.X, pady=2)
+
+        self.set_button_setLLM = tk.Button(right_frame, text="SetLLM", command=self.create_SetLLM_sub_window)
+        self.set_button_setLLM.pack(fill=tk.X, pady=2)
+
+        self.set_button_screenshot = tk.Button(right_frame, text="ScreenSub", command=self.create_tools_sub_window4)  # 组件按钮格式化功能
+        self.set_button_screenshot.pack(fill=tk.X, pady=2)
+
+        # --- 底部记录操作区域 ---
+        bottom_frame = tk.Frame(center_frame)
+        bottom_frame.pack(fill=tk.X, pady=5)
+
+        # 复制关键字对应的值
+        self.select_key_btn = tk.Button(
+            bottom_frame,
+            text="CopyResKey",
+            anchor="center",
+            command=lambda: self.copy_value_of_key(self, self.response_text, self.select_key_combobox.get())
+        )
+        self.select_key_btn.pack(side=tk.LEFT)
+
+        # 设置关键字输入框
+        self.select_key_combobox = ttk.Combobox(bottom_frame, state="NORMAL")
+        self.select_key_combobox.pack(side=tk.LEFT)
+        self.select_key_combobox["values"] = ['reportNo']
+        self.select_key_combobox["values"] = find_value_in_nested_dict(
+            read_json_file(f'{current_script_path}/configini.json'), "CopyKey")
+        self.select_key_combobox.current(0)  # 设置默认值为列表中的第一个元素
+
+        self.refresh_response_text_key_button = tk.Button(
+            bottom_frame,
+            text="RefreshKey",
+            anchor="center",
+            command=lambda: self.refreshKey(self.response_text, self.select_key_combobox)
+        )
+        self.refresh_response_text_key_button.pack(side=tk.LEFT)
+
+        # 搜索按钮
+        self.search_btn = tk.Button(
+            bottom_frame,
+            text="FindReskey",
+            anchor="center",
+            command=lambda: self.search_text(self.search_combobox.get())
+        )
+        self.search_btn.pack(side=tk.LEFT)
+
+        # 搜索response关键字结果
+        self.search_combobox = ttk.Combobox(bottom_frame, state='NORMAL')
+        self.search_combobox.pack(side=tk.LEFT)
+        self.search_combobox['values'] = ['CollegeName']
+
+        bottom_frame1 = tk.Frame(center_frame)
+        bottom_frame1.pack(fill=tk.X, pady=5)
+
+        self.select_record_button = tk.Button(
+            bottom_frame1,
+            text="Select Records:",
+            command=self.find_file_to_fill_record
+        )
+        self.select_record_button.pack(side=tk.LEFT)
+
+        self.record_combobox = ttk.Combobox(bottom_frame1, state='readonly', width=50)
+        self.record_combobox.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        self.record_combobox.bind('<<ComboboxSelected>>', self.fill_record)
+
+        self.delete_record_button = tk.Button(
+            bottom_frame1,
+            text="Delete Records",
+            command=lambda: self.thread_it(self.delete_records)
+        )
+        self.delete_record_button.pack(side=tk.LEFT)
+
+        # 样式配置（保留原有逻辑）
+        self.response_text.tag_config("match", background="yellow")
+
+    def create_mainWin_widgets1(self):
         # URL输入
         self.url_label = tk.Label(
             self,
             background='white',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
             text="URL:"
         )
@@ -1233,7 +1498,7 @@ class SimplePostmanApp(tk.Tk):
         self.method_label = tk.Label(
             self,
             background='white',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
             text="Method:"
         )
@@ -1265,16 +1530,16 @@ class SimplePostmanApp(tk.Tk):
         self.headers_label = tk.Label(
             self,
             background='white',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
-            text="Headers (JSON):"
+            text="Headers(JSON):"
         )
         self.headers_label.grid(column=0, row=2)
 
         self.headers_text = scrolledtext.ScrolledText(
             self,
             background='lightblue',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
             width=45,
             height=10,
@@ -1288,19 +1553,19 @@ class SimplePostmanApp(tk.Tk):
         self.body_label = tk.Label(
             self,
             background='white',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
-            text="Body (JSON) :"
+            text="Body(JSON):"
         )
         self.body_label.grid(column=0, row=4)
 
         self.body_text = scrolledtext.ScrolledText(
             self,
             background='lightblue',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
             width=45,
-            height=10,
+            height=30,
             bg="lightskyblue"
         )
         self.body_text.grid(column=1, row=4, rowspan=2, sticky='NSEW')
@@ -1311,7 +1576,7 @@ class SimplePostmanApp(tk.Tk):
         self.send_label = tk.Label(
             self,
             background='white',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
             text="Send Request:"
         )
@@ -1323,7 +1588,7 @@ class SimplePostmanApp(tk.Tk):
             text="Send",
             bg='#FFB6C1',
             fg='black',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             command=lambda: self.thread_it(self.send_request_by_userInputData)
         )
         self.send_button.grid(column=1, row=6, sticky='EW') # 加线程
@@ -1357,22 +1622,22 @@ class SimplePostmanApp(tk.Tk):
         self.response_label = tk.Label(
             self,
             background='white',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
-            text="Response (JSON):"
+            text="Response(JSON):"
         )
         self.response_label.grid(column=0, row=7)
 
         self.response_text = scrolledtext.ScrolledText(
             self,
             background='lightblue',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
             width=45,
             height=30,
             bg="lightskyblue"
         )
-        self.response_text.grid(column=1, row=7, rowspan=13, sticky='NSEW')  # ,columnspan=3
+        self.response_text.grid(column=1, row=7, rowspan=13, sticky='EW')  # ,columnspan=3
         # scrolledtext.ScrolledText内添加功能按钮
         self.add_function_buttons_in_request_text(self, self.response_text, 1)
 
@@ -1391,11 +1656,11 @@ class SimplePostmanApp(tk.Tk):
         self.search_combobox['values'] = ['CollegeName']
         self.search_combobox.current(0)  # 设置默认值为列表中的第一个元素
 
-        self.set_button_Tools = tk.Button(self, text="BusinessTools", command=self.create_tools_sub_window)  # 组件按钮格式化功能
-        self.set_button_Tools.grid(column=2,row=2)
+        self.set_button_businessTools = tk.Button(self, text="BusinessTools", command=self.create_tools_sub_window)  # 组件按钮格式化功能
+        self.set_button_businessTools.grid(column=2, row=2)
 
-        self.set_button_Tools = tk.Button(self, text="modifyExcel", command=self.create_modify_excel_sub_window)  # 组件按钮格式化功能
-        self.set_button_Tools.grid(column=3, row=2)
+        self.set_button_businessTools = tk.Button(self, text="modifyExcel", command=self.create_modify_excel_sub_window)  # 组件按钮格式化功能
+        self.set_button_businessTools.grid(column=3, row=2)
 
         self.set_button_ChangeImg = tk.Button(self, text="ChangeImg", command=self.create_tools_sub_window1)  # 组件按钮格式化功能
         self.set_button_ChangeImg.grid(column=2,row=3)
@@ -1409,7 +1674,7 @@ class SimplePostmanApp(tk.Tk):
         self.set_button_setLLM.grid(column=3,row=5)
 
         self.set_button_screenshot = tk.Button(self, text="ScreenSub", command=self.create_tools_sub_window4)  # 组件按钮格式化功能
-        self.set_button_screenshot.grid(column=2,row=6)
+        self.set_button_screenshot.grid(column=3,row=4)
 
         self.select_record_button = tk.Button(
             self,
@@ -1596,7 +1861,7 @@ class SimplePostmanApp(tk.Tk):
         sub_win.apiURL_label = tk.Label(
             sub_win,
             background='white',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
             text="apiURL:"
         )
@@ -1629,7 +1894,7 @@ class SimplePostmanApp(tk.Tk):
         sub_win.apiKey_label = tk.Label(
             sub_win,
             background='white',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
             text="apiKey:"
         )
@@ -1662,7 +1927,7 @@ class SimplePostmanApp(tk.Tk):
         sub_win.apiHeaders_label = tk.Label(
             sub_win,
             background='white',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
             text="apiHeaders:"
         )
@@ -1858,7 +2123,7 @@ class SimplePostmanApp(tk.Tk):
 
     def create_ocr_text_sub_widgets(self, sub_win):
         """创建图片OCR识别界面布局（左图右文）- 支持图片自适应填充"""
-        # --- 主框架（保持不变）---
+        # --- 主框架---
         main_frame = tk.Frame(sub_win,background='lightblue')
         main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
@@ -1871,7 +2136,7 @@ class SimplePostmanApp(tk.Tk):
             wrap=tk.WORD,
             yscrollcommand=scrollbar.set,
             background='lightblue',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='blue',# 字体颜色（蓝色）
             padx=5,
             pady=5
@@ -1894,7 +2159,7 @@ class SimplePostmanApp(tk.Tk):
             wrap=tk.WORD,
             yscrollcommand=scrollbar1.set,
             background='lightblue',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='blue',# 字体颜色（蓝色）
             padx=5,
             pady=5
@@ -1907,16 +2172,21 @@ class SimplePostmanApp(tk.Tk):
         self.text_output.pack(fill=tk.BOTH, expand=True)
         self.text_output.insert(tk.END, "")
 
-        # ===== 底部按钮区域（保持不变） =====
-        btn_frame = tk.Frame(sub_win,background='lightblue')
+        # --- 第二行主框架 ---
+        main_frame1 = tk.Frame(sub_win, background='lightblue')
+        main_frame1.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # ===== 底部按钮区域 =====
+        btn_frame = tk.Frame(main_frame1, background='lightblue')
         btn_frame.pack(fill=tk.X, padx=5, pady=5)
-        tk.Label(
+
+        self.see_lang_label_btn1=tk.Label(
             btn_frame,
             background='white',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
             text="识别语言:"
-        ).pack(side=tk.LEFT, padx=(0, 5))
+        )
+        self.see_lang_label_btn1.pack(side=tk.LEFT, padx=(0, 5))
 
         # 创建样式对象
         style = ttk.Style()
@@ -1927,25 +2197,26 @@ class SimplePostmanApp(tk.Tk):
             fieldbackground='lightblue',  # 输入框的背景色
             background='lightgreen' # 下拉列表的背景色
         )
-        self.lang_combo = ttk.Combobox(
+        self.lang_combo_see = ttk.Combobox(
             btn_frame,
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
             values=["中文", "英文", "日文", "韩文", "阿拉伯文"],
             style = 'TCombobox'
         )
-        self.lang_combo.pack(side=tk.LEFT, padx=(0, 10))
-        self.lang_combo.current(0)
-        tk.Label(
+        self.lang_combo_see.pack(side=tk.LEFT, padx=(0, 10))
+        self.lang_combo_see.current(0)
+        self.see_content_label_btn1=tk.Label(
             btn_frame,
             background='white',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
             text="识别内容:"
-        ).pack(side=tk.LEFT, padx=(0, 5))
-        self.lang_combo1 = ttk.Combobox(btn_frame, values=["文本", "定位"])
-        self.lang_combo1.pack(side=tk.LEFT, padx=(0, 10))
-        self.lang_combo1.current(0)
+        )
+        self.see_content_label_btn1.pack(side=tk.LEFT, padx=(0, 5))
+        self.lang_combo_pattern = ttk.Combobox(btn_frame, values=["文本", "定位"])
+        self.lang_combo_pattern.pack(side=tk.LEFT, padx=(0, 10))
+        self.lang_combo_pattern.current(0)
 
     def create_ocr_qa_sub_widgets(self, sub_win):
         """创建图片OCR识别界面布局（左图右文）- 支持图片自适应填充"""
@@ -1963,7 +2234,7 @@ class SimplePostmanApp(tk.Tk):
             left_text_frame,
             wrap=tk.WORD,
             yscrollcommand=scrollbar.set,
-            font=self.set_font_size('Helvetica', 14, 'bold'),
+            font=self.set_font_size('Song', 14, 'normal'),
             foreground='blue',
             bg='lightblue',
             padx=5,
@@ -1986,7 +2257,7 @@ class SimplePostmanApp(tk.Tk):
             right_text_frame,
             wrap=tk.WORD,
             yscrollcommand=scrollbar.set,
-            font=self.set_font_size('Helvetica', 14, 'bold'),
+            font=self.set_font_size('Song', 14, 'normal'),
             foreground='blue',
             bg='lightblue',
             padx=5,
@@ -2015,68 +2286,71 @@ class SimplePostmanApp(tk.Tk):
         # # 提问按钮
         # ttk.Button(btn_group1, text="提问",command=lambda: self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini")).pack(side=tk.LEFT, padx=5)
 
-        tk.Button(
+        self.select_qa_record_button=tk.Button(
             btn_group1,
             text="Select QARecords:",
             background='lightblue',
             command=lambda: self.find_file_to_fill_QA_record(self.qa_record_combo,self.left_text_output, self.right_text_output)
-        ).pack(side=tk.LEFT, padx=5)
+        )
+        self.select_qa_record_button.pack(side=tk.LEFT, padx=5)
+
         self.qa_record_combo = ttk.Combobox(btn_group1, state='readonly', background = 'lightblue',width=30)
         self.qa_record_combo.pack(side=tk.LEFT, padx=5)
         ##绑定回调函数不传递额外参数##
         self.qa_record_combo.bind('<<ComboboxSelected>>', self.fill_QA_record)
         self.load_qa_records(self.qa_record_combo)
 
-        # ##绑定回调函数传递额外参数##
-        # self.qa_record_combo.bind('<<ComboboxSelected>>', lambda e: self.fill_QA_record(e,self.qa_record_combo,self.left_text_output,self.right_text_output))
-
         self.delete_qa_record_button = tk.Button(
             btn_group1,
             text="Delete QARecords",
             background='lightblue',
             command=lambda: self.thread_it(self.delete_QA_records(self.qa_record_combo))
-        ).pack(side=tk.LEFT, padx=5)
+        )
+        self.delete_qa_record_button.pack(side=tk.LEFT, padx=5)
 
-        # ===== 第二行右侧功能区域 =====
-        right_frame = tk.Frame(main_frame1,background='lightblue')
-        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+        # --- 第三行主框架 ---
+        main_frame2 = tk.Frame(sub_win, background='lightblue')
+        main_frame2.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         # ===== 底部按钮区域 =====
-        btn_frame = tk.Frame(sub_win,background='lightblue')
+        btn_frame = tk.Frame(main_frame2,background='lightblue')
         btn_frame.pack(fill=tk.X, padx=5, pady=5)
 
-        tk.Label(
+        self.see_lang_label_btn=tk.Label(
             btn_frame,
-            background='lightblue',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            background='white',
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
             text="识别语言:",
-        ).pack(side=tk.LEFT, padx=(0, 5))
-        self.lang_combo = ttk.Combobox(btn_frame, values=["中文", "英文", "日文", "韩文", "阿拉伯文"],background='lightblue')
-        self.lang_combo.pack(side=tk.LEFT, padx=(0, 10))
-        self.lang_combo.current(0)
-
-        tk.Label(
-            btn_frame,
-            background='lightblue',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
-            foreground='black',  # 字体颜色
-            text="常用提问话术:"
-        ).pack(side=tk.LEFT, padx=(0, 5))
-        conversationsList=find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')),  "conversation")
-        self.lang_combo1 = ttk.Combobox(btn_frame, values=conversationsList,background='lightblue')
+        )
+        self.see_lang_label_btn.pack(side=tk.LEFT, padx=(0, 5))
+        self.lang_combo1 = ttk.Combobox(btn_frame, values=["中文", "英文", "日文", "韩文", "阿拉伯文"], background='lightblue')
         self.lang_combo1.pack(side=tk.LEFT, padx=(0, 10))
         self.lang_combo1.current(0)
 
-        select_btn3 = tk.Button(
+        self.common_question_label_btn=tk.Label(
+            btn_frame,
+            background='white',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',  # 字体颜色
+            text="常用提问话术:"
+        )
+        self.common_question_label_btn.pack(side=tk.LEFT, padx=(0, 5))
+        conversationsList=find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')),  "conversation")
+
+        self.lang_combo2 = ttk.Combobox(btn_frame, values=conversationsList,background='lightblue')
+        self.lang_combo2.pack(side=tk.LEFT, padx=(0, 10))
+        self.lang_combo2.current(0)
+
+        self.insert_conversation_btn= tk.Button(
             btn_frame,
             text="插入话术",
             background = 'lightblue',
-            font=self.set_font_size('Helvetica', 12, 'bold'),
+            font=self.set_font_size('Song', 12, 'normal'),
             foreground='black',  # 字体颜色
-            command=lambda: self.thread_it(self.insert_content_in_text(self.left_text_output,self.lang_combo1.get()))
+            command=lambda: self.thread_it(self.insert_content_in_text(self.left_text_output,self.lang_combo2.get()))
         )
-        select_btn3.pack(side=tk.LEFT)
+        self.insert_conversation_btn.pack(side=tk.LEFT)
 
     def create_screenshot_sub_widgets(self, sub_win):
         sub_win.screenshot_btn = tk.Button(
@@ -2100,9 +2374,9 @@ class SimplePostmanApp(tk.Tk):
                 # 调用OCR识别  param lang must in dict_keys(['ch', 'en', 'korean', 'japan', 'chinese_cht', 'ta', 'te', 'ka', 'latin', 'arabic', 'cyrillic', 'devanagari']), but got chi_sim
                 lang_map = {"中文": "ch", "英文": "en",
                             "日文": "japan", "韩文": "korean", "阿拉伯文": "arabic"}
-                selected_lang = self.lang_combo.get()
+                selected_lang = self.lang_combo_see.get()
                 lang = lang_map[selected_lang]
-                pattern = self.lang_combo1.get()
+                pattern = self.lang_combo_see.get()
 
                 # 1. 打开图片并获取控件宽度
                 image = Image.open(img_path)
@@ -2145,7 +2419,7 @@ class SimplePostmanApp(tk.Tk):
                 # 调用OCR识别  param lang must in dict_keys(['ch', 'en', 'korean', 'japan', 'chinese_cht', 'ta', 'te', 'ka', 'latin', 'arabic', 'cyrillic', 'devanagari']), but got chi_sim
                 lang_map = {"中文": "ch", "英文": "en",
                             "日文": "japan", "韩文": "korean", "阿拉伯文": "arabic"}
-                selected_lang = self.lang_combo.get()
+                selected_lang = self.lang_combo1.get()
                 lang = lang_map[selected_lang]
 
                 # 1. 打开图片并获取控件宽度
@@ -2189,7 +2463,7 @@ class SimplePostmanApp(tk.Tk):
                 # 调用OCR识别  param lang must in dict_keys(['ch', 'en', 'korean', 'japan', 'chinese_cht', 'ta', 'te', 'ka', 'latin', 'arabic', 'cyrillic', 'devanagari']), but got chi_sim
                 lang_map = {"中文": "ch", "英文": "en",
                             "日文": "japan", "韩文": "korean", "阿拉伯文": "arabic"}
-                selected_lang = self.lang_combo.get()
+                selected_lang = self.lang_combo1.get()
                 lang = lang_map[selected_lang]
 
                 # 1. 打开图片并获取控件宽度
@@ -2229,7 +2503,7 @@ class SimplePostmanApp(tk.Tk):
                 # 调用OCR识别  param lang must in dict_keys(['ch', 'en', 'korean', 'japan', 'chinese_cht', 'ta', 'te', 'ka', 'latin', 'arabic', 'cyrillic', 'devanagari']), but got chi_sim
                 lang_map = {"中文": "ch", "英文": "en",
                             "日文": "japan", "韩文": "korean", "阿拉伯文": "arabic"}
-                selected_lang = self.lang_combo.get()
+                selected_lang = self.lang_combo1.get()
                 lang = lang_map[selected_lang]
 
                 # 1. 打开图片并获取控件宽度
@@ -2269,7 +2543,7 @@ class SimplePostmanApp(tk.Tk):
                 # 调用OCR识别  param lang must in dict_keys(['ch', 'en', 'korean', 'japan', 'chinese_cht', 'ta', 'te', 'ka', 'latin', 'arabic', 'cyrillic', 'devanagari']), but got chi_sim
                 lang_map = {"中文": "ch", "英文": "en",
                             "日文": "japan", "韩文": "korean", "阿拉伯文": "arabic"}
-                selected_lang = self.lang_combo.get()
+                selected_lang = self.lang_combo_see.get()
                 lang = lang_map[selected_lang]
 
                 # 1. 打开图片并获取控件宽度
@@ -2387,46 +2661,60 @@ class SimplePostmanApp(tk.Tk):
             command=lambda: self.paste_image_to_text(which_text,'qa'))
         paste_image_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
-    def add_function_buttons_in_qa_text1(self, which_win, which_text, pattern):
-        # 确保 which_text 是 ScrolledText 对象
-        if not hasattr(which_text, 'text'):
-            raise ValueError("which_text must be a ScrolledText instance")
-
-        # 创建功能按钮的Frame（绑定到 ScrolledText 的父容器）
-        button_frame1 = tk.Frame(which_text.master,background='lightblue')
-        button_frame1.pack(side=tk.BOTTOM, fill=tk.X)
-
-        if pattern == 1:
-            # 自定义功能按钮（通过 which_text.text  访问内部 Text 控件）
-            question_btn = tk.Button(
-                button_frame1,
-                text="Question",
-                command=lambda: self.thread_it(self.askAI(self.left_text_output, self.right_text_output, "gpt-4o-mini"))
-            )
-            question_btn.pack(side=tk.LEFT, padx=2, pady=2)
-
-            screenshot_btn = tk.Button(
-                button_frame1,
-                text="ScreenQA",
-                command=lambda: self.thread_it(self.start_region_selection_has_qa_inputTextWin(self))
-            )
-            screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
-
-            # 其他按钮同理...
-
-        # 第二组按钮（复制/粘贴等）
-        button_frame2 = tk.Frame(which_text.master)
-        button_frame2.pack(side=tk.BOTTOM, fill=tk.X)
-
-        # 操作 ScrolledText 的内部 Text 控件（which_text.text ）
-        copy_btn = tk.Button(
-            button_frame2,
-            text="Copy",
-            command=lambda: self.copy_content(which_text.text)  # 修改为操作 which_text.text
+    def add_function_buttons_in_request_text_for_tkText_pack(self, which_win, which_tkText, pattern):
+        # 创建功能按钮的Frame
+        # ["raised", "sunken", "flat", "ridge", "solid", "groove"]
+        button_frame1 = tk.Frame(
+            which_tkText.master,
+            background='lightblue',
+            relief="raised"
         )
-        copy_btn.pack(side=tk.LEFT, padx=2, pady=2)
+        button_frame1.pack(side=tk.BOTTOM, fill=tk.X)
+        # 格式化json
+        question_btn = tk.Button(
+            button_frame1,
+            anchor='center',
+            font=self.set_font_size('Song', 10, 'normal'),
+            bg='yellow',
+            relief="flat",  # 去除默认边框
+            text="Format",
+            command=lambda: self.thread_it(self.format_content(which_tkText))
+        )
+        question_btn.pack(side=tk.LEFT, padx=2, pady=2,  expand=True, fill="both")
 
-        # 其他按钮（paste/cut/clear）同理...
+        # 复制按钮
+        copy_btn = tk.Button(button_frame1, anchor='center', font=self.set_font_size('Song', 10, 'normal'), text="Copy",
+                             command=lambda: self.copy_content(
+                                 which_tkText))
+        copy_btn.pack(side=tk.LEFT, padx=2, pady=2,  expand=True, fill="both")
+
+        # 粘贴按钮
+        paste_btn = tk.Button(button_frame1, font=self.set_font_size('Song', 10, 'normal'), text="Paste",
+                              command=lambda: self.paste(which_win,
+                                                         which_tkText))  # command=lambda: which_text.event_generate("<<Paste>>"))
+        paste_btn.pack(side=tk.LEFT, padx=2, pady=2,  expand=True, fill="both")
+
+        button_frame4 = tk.Frame(which_tkText.master, background='lightblue')
+        button_frame4.pack(side=tk.TOP, fill=tk.X)
+        # 剪切按钮（可选）
+        cut_btn = tk.Button(button_frame1, font=self.set_font_size('Song', 10, 'normal'), text="Cut",
+                            command=lambda: self.cut_content(
+                                which_tkText))
+        cut_btn.pack(side=tk.LEFT, padx=2, pady=2,  expand=True, fill="both")
+
+        # 清空按钮（自定义功能）
+        clear_btn = tk.Button(button_frame1, font=self.set_font_size('Song', 10, 'normal'), text="Clear",
+                              command=lambda: self.clearContent(
+                                  which_tkText))  # command=lambda: which_text.delete(1.0, tk.END))
+        clear_btn.pack(side=tk.LEFT, padx=2, pady=2,  expand=True, fill="both")
+
+        # 截屏识字,复制到粘贴板
+        if pattern == 1:
+            # 格式化json
+            screenshot_btn = tk.Button(button_frame1, font=self.set_font_size('Song', 10, 'normal'), text="Screen",
+                                       command=lambda: self.thread_it(self.start_region_selection_only_see_img()))
+            screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2,  expand=True, fill="both")
+        pass
 
     def add_function_buttons_in_img_text(self, which_win, which_text, pattern):
         # 创建功能按钮的Frame（放在Text控件底部）
@@ -2483,18 +2771,30 @@ class SimplePostmanApp(tk.Tk):
         paste_image_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
     def add_function_buttons_in_request_text(self, which_win, which_text, pattern):
-        # 创建功能按钮的Frame（放在Text控件底部）
-        button_frame1 = tk.Frame(which_text.master, width=100,background='lightblue')
+        # 创建功能按钮的Frame
+        #["raised", "sunken", "flat", "ridge", "solid", "groove"]
+        button_frame1 = tk.Frame(
+            which_text.master,
+            background='lightblue',
+            relief="raised"
+        )
         button_frame1.pack(side=tk.TOP, fill=tk.X)
         # 格式化json
-        question_btn = tk.Button(button_frame1, font=self.set_font_size('Song', 10, 'normal'),text="Format", command=lambda: self.thread_it(
-            self.format_content(which_text)))
+        question_btn = tk.Button(
+            button_frame1,
+            anchor='center',
+            font=self.set_font_size('Song', 10, 'normal'),
+            bg='yellow',
+            relief="flat",  # 去除默认边框
+            text="Format",
+            command=lambda: self.thread_it(self.format_content(which_text))
+        )
         question_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
         button_frame2 = tk.Frame(which_text.master,background='lightblue')
         button_frame2.pack(side=tk.TOP, fill=tk.X)
         # 复制按钮
-        copy_btn = tk.Button(button_frame2, font=self.set_font_size('Song', 10, 'normal'), text="Copy", command=lambda: self.copy_content(
+        copy_btn = tk.Button(button_frame2, anchor='center',font=self.set_font_size('Song', 10, 'normal'), text="Copy", command=lambda: self.copy_content(
             which_text))
         copy_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
