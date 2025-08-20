@@ -2406,7 +2406,18 @@ class SimplePostmanApp(tk.Tk):
         sheetname_frame0 = tk.Frame(left_frame, bg="lightblue")
         sheetname_frame0.pack(fill=tk.X, pady=2)
 
-        # 选择excel文件
+        # 手动选择excel文件标签
+        sub_win.choiceExcel_label = tk.Label(
+            sheetname_frame0,
+            text="ChoiceFile:",
+            font=self.set_font_size('Song', 10, 'normal'),
+            foreground='black',
+            background='white',
+            highlightbackground='white'
+        )
+        sub_win.choiceExcel_label.pack(side=tk.LEFT)
+
+        # 手动选择excel文件按钮
         sub_win.choiceExcel_button = tk.Button(
             sheetname_frame0,
             font=self.set_font_size('Song', 10, 'normal'),
@@ -6180,5 +6191,4 @@ print(paddle.__file__) # /Users/ketangchen/miniconda3/envs/my_env1/lib/python3.9
 
 cp -r /Users/ketangchen/miniconda3/envs/my_env1/lib/python3.9/site-packages/paddle/libs ./dist/PostmanByTk1.app/Contents/MacOS/ 
 """
-
 
