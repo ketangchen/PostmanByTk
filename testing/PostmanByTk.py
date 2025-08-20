@@ -768,7 +768,54 @@ class SimplePostmanApp(tk.Tk):
         # 在子窗口中添加一些内容
         # label = tk.Label(popup, text=informContent)
         # label.pack(pady=20)
-        popup.content_text = tk.Text(popup, bg='lightskyblue')
+        popup.content_text = tk.Text(
+            popup,
+            background='lightblue',
+            highlightbackground='lightblue',
+            foreground='black',
+            bg='lightskyblue'
+        )
+        popup.content_text.pack(fill=tk.BOTH, expand=True)
+
+        popup.content_text.insert('insert', informContent)
+
+        # 定义一个函数，用于关闭子窗口
+        def close_window():
+            popup.destroy()
+
+        # lastingTime后调用关闭窗口的函数
+        popup.after(lastingTime, close_window)
+
+    def messageInformInTransWin(self, informContent, lastingTime):
+        """
+        # 定义一个函数，用于创建子窗口并在2秒后关闭它
+        """
+        # 创建一个消息提示子窗口
+        popup = tk.Toplevel(self)
+        popup.title("翻译结果")
+
+        # 获取电脑分辨率
+        screen_width = popup.winfo_screenwidth()
+        screen_height = popup.winfo_screenheight()
+        # 设置坐标
+        x = (screen_width - 400) // 2
+        y = (screen_height - 200) // 2
+        # 设置展示位置
+        popup.geometry(f"{400}x{200}+{x}+{y}")
+        # 设置窗口自适应
+        popup.grid_columnconfigure(1, weight=1)
+        popup.grid_rowconfigure(5, weight=1)
+
+        # 在子窗口中添加一些内容
+        # label = tk.Label(popup, text=informContent)
+        # label.pack(pady=20)
+        popup.content_text = tk.Text(
+            popup,
+            background='lightblue',
+            highlightbackground='lightblue',
+            foreground='black',
+            bg='lightskyblue'
+        )
         popup.content_text.pack(fill=tk.BOTH, expand=True)
 
         popup.content_text.insert('insert', informContent)
@@ -783,6 +830,52 @@ class SimplePostmanApp(tk.Tk):
     def undo_operation(self,event):
         print("微销操作")
         # 在这里添加撒销操作的具体实现代码
+
+    def translateEnglishByLLM(self, keyword, model="gpt-4o-mini"):
+        """单次提问函数"""
+        # 配置API
+        openai.api_key = \
+        find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')), "apiKey")[0]
+        openai.base_url = \
+        find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')), "apiURL")[0]
+        openai.default_headers = \
+        find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')), "apiHeaders")[0]
+
+        if set_LLM['apiKey']!='':
+            openai.api_key = set_LLM['apiKey']
+        if set_LLM['apiURL'] != '':
+            openai.base_url = set_LLM['apiURL']
+        if set_LLM['apiHeaders'] != '':
+            openai.default_headers = set_LLM['apiHeaders']
+
+        #question=f"{keyword}\n这个是英文单词(如果是单词的话,拼写是否错误?拼写错误的话请转换换为最相近的单词,并标出英文音标)还是英文段落?它是什么意思?请精准地翻译成中文"
+        question = f'\"{keyword}\"这个是什么意思?'
+        delay = 1.0
+        print(question)
+        #self.messageInformInWin("提问中......", 2000)
+        try:
+            print(f"\n正在处理问题: {question[:30]}...")
+
+            completion = openai.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": question}],
+                timeout=20  # 增加超时限制
+            )
+            answer = completion.choices[0].message.content
+            # 打印当前结果
+            print(f"【问题】{question}\n【回答】{answer}\n")
+            save_qa_data(question,answer)
+            self.continuing_save_question_and_ask(question,answer)
+            self.messageInformInTransWin(answer,300000) #
+            self.load_qa_records(self.qa_record_combo)
+            sleep(delay)  # 避免频繁请求
+        except Exception as e:
+            answer = f"ERROR: {str(e)}"
+            print(answer)
+            save_qa_data(question, answer)
+            self.messageInformInTransWin(answer, 300000)
+            sleep(delay)  # 避免频繁请求
+        #return answer
 
     def askAI(self, qtext, atext, model="gpt-4o-mini"):
         """单次提问函数"""
@@ -839,8 +932,8 @@ class SimplePostmanApp(tk.Tk):
             qtext.insert("end", f"\n{question}")  # 继续插入文字
             #image_references[img_path] = photo  # 保存引用
 
-        delay = 1.5
-        self.messageInformInWin("提问中......", 3000)
+        delay = 1.0
+        self.messageInformInWin("提问中......", 2000)
         try:
             print(f"\n正在处理问题: {question[:30]}...")
 
@@ -866,6 +959,7 @@ class SimplePostmanApp(tk.Tk):
             save_qa_data(question, answer)
             atext.insert(tk.END, f'{answer}')
             self.load_qa_records(self.qa_record_combo)
+            sleep(delay)  # 避免频繁请求
         #return answer
 
     def batch_askAI(self, questions, qtext, atext, model="gpt-4o-mini", delay=1.5):
@@ -902,7 +996,7 @@ class SimplePostmanApp(tk.Tk):
 
         #return results
 
-    def read_all_rows_from_excel(self):
+    def read_all_row_records_from_excel(self,which_excelPath_combo,which_sheetName_combo,which_columnName_combo,pattern):
         """
         读取Excel文件中所有工作表的每一行数据
         参数:
@@ -913,12 +1007,166 @@ class SimplePostmanApp(tk.Tk):
         """
         """通过选择的记录填充表单"""
         filetypes = [("JSON Files", "*.xlsx *.csv")]
-        excel_file_path = filedialog.askopenfilename(title="选择xlsx文件", filetypes=filetypes)
+        excel_file_path = filedialog.askopenfilename(title="选择excel文件", filetypes=filetypes)
         # 打开一个文件选择对话框，用户选择json文件
         if not isfile(excel_file_path):  # 检查所选文件是否存在
             print(f"文件不存在:{excel_file_path}")
+            #which_entry.url_entry.delete(0, tk.END)
         else:
             pass
+        try:
+            # 使用ExcelFile对象提高读取效率
+            excel_file = pd.ExcelFile(excel_file_path)
+            sheet_data = {}
+            res=[]
+            sheet_name_res = []
+            column_name_res = []
+            # 遍历每个工作表
+            for sheet_name in excel_file.sheet_names:
+                # 读取整个工作表
+                df = excel_file.parse(sheet_name)
+                sheet_name_res.append(sheet_name)
+                # 将DataFrame转换为行数据列表（每行转为字典）
+                rows = df.to_dict('records')
+                sheet_data[sheet_name] = rows
+                res.append([sheet_name]+rows)
+                print([sheet_name]+rows)
+                # 打印预览信息
+                print(f"\n工作表 '{sheet_name}' 共 {len(rows)} 行数据:")
+                column_name_res.extend(df.columns.tolist())
+                print("属性包括:", df.columns.tolist())
+            if pattern==0:
+                pass
+                #return res
+            if pattern==1:
+                which_excelPath_combo['values'] = [excel_file_path]
+                which_sheetName_combo['values'] = sheet_name_res
+                which_columnName_combo['values'] = column_name_res
+                #return sheet_name_res
+
+        except FileNotFoundError:
+            print(f"调用{self.read_all_row_records_from_excel.__name__}方法错误: 文件未找到 - {excel_file_path}")
+            self.messageInformInWin(f"调用{self.read_all_row_records_from_excel.__name__}方法错误: 文件未找到 - {excel_file_path}",6000)
+            return []
+        except Exception as e:
+            print(f"调用{self.read_all_row_records_from_excel.__name__}方法错误: 处理文件时发生错误 - {e}")
+            self.messageInformInWin(f"调用{self.read_all_row_records_from_excel.__name__}方法错误: 处理文件时发生错误 - {e}",6000)
+            return []
+
+    def modify_keywords_in_a_sheet_of_excel(self, file_path, sheetName, columnName, yourRule, output_path=None):
+        """
+        修改 Excel 文件工作表中的某列数据，并保留所有未修改的工作表
+        参数:
+        file_path (str): 输入文件路径
+        sheetName (str): 要修改的工作表名
+        columnName (str): 要修改的列名
+        yourRule (str): 修改规则（目前仅支持'clearEmpty'）
+        output_path (str, optional): 输出文件路径，默认为None表示覆盖原文件
+        """
+        try:
+            # 读取Excel文件
+            excel_file = pd.ExcelFile(file_path)
+
+            # 获取所有工作表名
+            sheet_names = excel_file.sheet_names
+
+            # 用于存储所有工作表数据（包括修改和未修改的）
+            all_dfs = {}
+
+            # 先读取所有工作表到字典
+            for sheet in sheet_names:
+                all_dfs[sheet] = excel_file.parse(sheet)
+
+                # 处理指定工作表
+            if sheetName in all_dfs:
+                df = all_dfs[sheetName]
+                if columnName in df.columns:
+                    if yourRule == 'stripEmptyInColumn':
+                        # 修改指定列的所有值
+                        df[columnName] = df[columnName].astype(str).str.replace('\n', '', regex=False)  # 去除换行符
+                        df[columnName] = df[columnName].str.strip()  # 去除首尾空格
+                        print(
+                            f"调用{self.modify_keywords_in_a_sheet_of_excel.__name__} 方法成功修改工作表 '{sheetName}' 中的\"{columnName}\"列")
+                    elif yourRule == 'other':
+                        pass  # 其他规则可以在这里扩展
+                    else:
+                        pass
+                else:
+                    print(
+                        f"调用{self.modify_keywords_in_a_sheet_of_excel.__name__} 方法发现工作表 '{sheetName}' 中不存在\"{columnName}\"列")
+            else:
+                print(f"调用{self.modify_keywords_in_a_sheet_of_excel.__name__} 方法发现文件中不存在工作表 '{sheetName}'")
+
+            # 确定输出路径
+            if output_path is None:
+                output_path = file_path
+
+                # 将所有工作表（包括修改和未修改的）写入新文件
+            with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+                for sheet_name, df in all_dfs.items():
+                    df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+            print(f"调用{self.modify_keywords_in_a_sheet_of_excel.__name__} 方法成功更新所有工作表并保存到: {output_path}")
+            self.messageInformInWin(
+                f"调用{self.modify_keywords_in_a_sheet_of_excel.__name__} 方法成功更新所有工作表并保存到: {output_path}",
+                3000
+            )
+
+        except FileNotFoundError:
+            print(f"调用{self.modify_keywords_in_a_sheet_of_excel.__name__} 方法错误: 文件未找到 - {file_path}")
+            self.messageInformInWin(
+                f"调用{self.modify_keywords_in_a_sheet_of_excel.__name__} 方法错误: 文件未找到 - {file_path}",
+                3000
+            )
+        except Exception as e:
+            print(f"调用{self.modify_keywords_in_a_sheet_of_excel.__name__} 方法错误: 处理文件时发生错误 - {e}")
+            self.messageInformInWin(
+                f"调用{self.modify_keywords_in_a_sheet_of_excel.__name__} 方法错误: 处理文件时发生错误 - {e}",
+                3000
+            )
+
+    def view_data_in_a_sheet_of_excel(self, file_path, sheetName, which_display_text):
+        """
+        修改 Excel 文件工作表中的某列数据，并保留所有未修改的工作表
+        参数:
+        file_path (str): 输入文件路径
+        sheetName (str): 要修改的工作表名
+        columnName (str): 要修改的列名
+        which_display_text (t.Text): 展示的文本框
+        """
+        try:
+            # 使用ExcelFile对象提高读取效率
+            excel_file = pd.ExcelFile(file_path)
+            sheet_data = {}
+            res=[]
+            sheet_name_res = []
+            column_name_res = []
+            # 读取工作表
+            df = excel_file.parse(sheetName)
+            sheet_name_res.append(sheetName)
+            # 将DataFrame转换为行数据列表（每行转为字典）
+            rows = df.to_dict('records')
+            sheet_data[sheetName] = rows
+            res.append([sheetName]+rows)
+
+            excelData=str(rows).replace("\'","\"")
+            self.clearContent(which_display_text)
+            which_display_text.insert(tk.END,f'{excelData}')
+
+            print([sheetName]+rows)
+            # 打印预览信息
+            print(f"\n工作表 '{sheetName}' 共 {len(rows)} 行数据:")
+            column_name_res.extend(df.columns.tolist())
+            print("属性包括:", df.columns.tolist())
+
+        except FileNotFoundError:
+            print(f"调用{self.read_all_row_records_from_excel.__name__}方法错误: 文件未找到 - {file_path}")
+            self.messageInformInWin(f"调用{self.read_all_row_records_from_excel.__name__}方法错误: 文件未找到 - {file_path}",6000)
+        except Exception as e:
+            print(f"调用{self.read_all_row_records_from_excel.__name__}方法错误: 处理文件时发生错误 - {e}")
+            self.messageInformInWin(f"调用{self.read_all_row_records_from_excel.__name__}方法错误: 处理文件时发生错误 - {e}",6000)
+
+    def read_all_row_records_from_excel1(self,excel_file_path):
         try:
             # 使用ExcelFile对象提高读取效率
             excel_file = pd.ExcelFile(excel_file_path)
@@ -931,18 +1179,21 @@ class SimplePostmanApp(tk.Tk):
                 # 将DataFrame转换为行数据列表（每行转为字典）
                 rows = df.to_dict('records')
                 sheet_data[sheet_name] = rows
-                res.append(rows)
+                res.append([sheet_name]+rows)
+                print([sheet_name]+rows)
                 # 打印预览信息
                 print(f"\n工作表 '{sheet_name}' 共 {len(rows)} 行数据:")
                 print("属性包括:", df.columns.tolist())
             return res
 
         except FileNotFoundError:
-            print(f"错误: 文件未找到 - {excel_file_path}")
-            return None
+            print(f"调用{self.read_all_row_records_from_excel1.__name__}方法错误: 文件未找到 - {excel_file_path}")
+            self.messageInformInWin(f"调用{self.read_all_row_records_from_excel.__name__}方法错误: 文件未找到 - {excel_file_path}",6000)
+            return []
         except Exception as e:
-            print(f"错误: 处理文件时发生错误 - {e}")
-            return None
+            print(f"调用{self.read_all_row_records_from_excel1.__name__}方法错误: 处理文件时发生错误 - {e}")
+            self.messageInformInWin(f"调用{self.read_all_row_records_from_excel1.__name__}方法错误: 处理文件时发生错误 - {e}",6000)
+            return []
 
     def continuing_save_question_and_ask(self,qtex,atex):
         """逐次存储问答数据"""
@@ -1039,6 +1290,7 @@ class SimplePostmanApp(tk.Tk):
     def create_SetLLM_sub_window(self):
         # 创建设置入参子窗口
         sub_window = tk.Toplevel(self)
+        self.create_menu(sub_window)
         sub_style = ttk.Style(sub_window)  # 为子窗口创建独立的样式Style
         sub_style.theme_use('clam')
         # 配置Combobox及其下拉菜单样式
@@ -1088,12 +1340,12 @@ class SimplePostmanApp(tk.Tk):
         screen_width = sub_window.winfo_screenwidth()
         screen_height = sub_window.winfo_screenheight()
         # 设置坐标
-        x = (screen_width - 400) // 2
-        y = (screen_height - 300) // 2
+        x = (screen_width - 1000) // 2
+        y = (screen_height - 600) // 2
         # 设置应用名
         sub_window.title("ModifyExcel")
         # 设置展示位置
-        sub_window.geometry(f"{400}x{300}+{x + 655}+{y}")
+        sub_window.geometry(f"{1000}x{600}+{x}+{y-50}")
         # 设置窗口自适应
         sub_window.grid_columnconfigure(1, weight=1)
         sub_window.grid_rowconfigure(5, weight=1)
@@ -1153,6 +1405,40 @@ class SimplePostmanApp(tk.Tk):
         except:
             pass
         # 设置窗口背景颜色
+        sub_window.configure(background='lightskyblue')
+        # 获取电脑分辨率
+        screen_width = sub_window.winfo_screenwidth()
+        screen_height = sub_window.winfo_screenheight()
+        # 设置坐标
+        x = (screen_width - 1200) // 2
+        y = (screen_height - 600) // 2
+        # 设置应用名
+        sub_window.title("ModifyImg")
+        # 设置窗口展示位置和大小
+        sub_window.geometry(f"{1200}x{600}+{x}+{y}")
+        # 设置窗口自适应
+        sub_window.grid_columnconfigure(1, weight=1)
+        sub_window.grid_rowconfigure(5, weight=1)
+        # 在子窗口中添加标签
+        # Label = tk.Label(sub_window，text="这是一个子窗口")
+        # label.pack()
+        self.create_ocr_text_sub_widgets(sub_window)
+
+    def create_tools_sub_window_1(self):
+        # 创建工具子窗口
+        sub_window = tk.Toplevel(self)
+        sub_style = ttk.Style(sub_window)  # 为子窗口创建独立的样式Style
+        sub_style.theme_use('clam')
+        # 配置Combobox及其下拉菜单样式
+        sub_style.configure('TCombobox', fieldbackground='white', background='white', foreground='black')
+        sub_style.configure('TCombobox.Listbox', fieldbackground='white', background='white', foreground='black')
+
+        try:
+            # 设置子窗口图标
+            sub_window.wm_iconbitmap(bitmap=f'{current_script_path}/happy.ico')
+        except:
+            pass
+        # 设置窗口背景颜色
         sub_window.configure(bg='lightskyblue')
         # 获取电脑分辨率
         screen_width = sub_window.winfo_screenwidth()
@@ -1161,7 +1447,7 @@ class SimplePostmanApp(tk.Tk):
         x = (screen_width - 800) // 2
         y = (screen_height - 400) // 2
         # 设置应用名
-        sub_window.title("ChangeImg")
+        sub_window.title("ModifyImg")
         # 设置展示位置
         sub_window.geometry(f"{800}x{400}+{x}+{y}")
         # 设置窗口自适应
@@ -1368,6 +1654,8 @@ class SimplePostmanApp(tk.Tk):
         sub_style.configure('TCombobox', fieldbackground='white', background='white', foreground='black')
         sub_style.configure('TCombobox.Listbox', fieldbackground='white', background='white', foreground='black')
 
+        self.create_menu(self)
+
         left_frame = tk.Frame(self, bg="lightblue")
         center_frame = tk.Frame(self, bg="lightblue")
         right_frame = tk.Frame(self, bg="lightblue")
@@ -1431,8 +1719,8 @@ class SimplePostmanApp(tk.Tk):
         )
         self.headers_label.pack(anchor='w')
 
-        # self.headers_text = scrolledtext.ScrolledText(
         headers_scrollbar = tk.Scrollbar(headers_frame)
+        headers_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.headers_text = tk.Text(
             headers_frame,
             yscrollcommand=headers_scrollbar.set,
@@ -1463,6 +1751,7 @@ class SimplePostmanApp(tk.Tk):
 
         # self.body_text = scrolledtext.ScrolledText(
         body_scrollbar = tk.Scrollbar(body_frame)
+        body_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.body_text = tk.Text(
             body_frame,
             yscrollcommand=body_scrollbar.set,
@@ -1526,7 +1815,7 @@ class SimplePostmanApp(tk.Tk):
             text="Send",
             bg='#FFB6C1',
             fg='black',
-            highlightbackground='lightblue',#tk.Button按钮背景色
+            highlightbackground='blue',#tk.Button按钮背景色
             font=self.set_font_size('Song', 12, 'normal'),
             command=lambda: self.thread_it(self.send_request_by_userInputData)
         )
@@ -1547,6 +1836,7 @@ class SimplePostmanApp(tk.Tk):
 
         # self.response_text = scrolledtext.ScrolledText(
         response_scrollbar = tk.Scrollbar(response_frame)
+        response_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.response_text = tk.Text(
             response_frame,
             yscrollcommand=response_scrollbar.set,
@@ -1573,7 +1863,7 @@ class SimplePostmanApp(tk.Tk):
 
         self.set_button_modifyExcel = tk.Button(
             right_frame,
-            text="modifyExcel",
+            text="ModifyExcel",
             highlightbackground='lightblue',  # tk.Button按钮背景色
             command=self.create_modify_excel_sub_window
         )
@@ -1589,7 +1879,7 @@ class SimplePostmanApp(tk.Tk):
 
         self.set_button_ChangeImg = tk.Button(
             right_frame,
-            text="ChangeImg",
+            text="ModifyImg",
             highlightbackground='lightblue',  # tk.Button按钮背景色
             command=self.create_tools_sub_window1
         )
@@ -1626,6 +1916,14 @@ class SimplePostmanApp(tk.Tk):
             command=self.create_tools_sub_window4
         )
         self.set_button_screenshot.pack(fill=tk.X, pady=2)
+
+        self.app_path_copy_button = tk.Button(
+            right_frame,
+            text="AppPathCopy",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            command=self.app_path_copy
+        )
+        self.app_path_copy_button.pack(fill=tk.X, pady=2)
 
         # --- 底部记录操作区域 ---
         bottom_frame = tk.Frame(center_frame, bg="lightblue")
@@ -1716,6 +2014,14 @@ class SimplePostmanApp(tk.Tk):
 
         # 样式配置（保留原有逻辑）
         self.response_text.tag_config("match", background="yellow")
+
+    def app_path_copy(self):
+        input_content = f'{current_script_path}/'  # 将内容复制到剪贴板
+        self.clipboard_clear()
+        self.clipboard_append(input_content)  # 显示复制成功的消息《可选》
+        print(f"{input_content}内容已复制到剪贴板。")  # messagebox.showinfo(input_content)
+        # self.messageInformInWin(input_content, 2800)
+        time.sleep(1)
 
     def create_mainWin_widgets1(self):
         sub_style = ttk.Style(self)  # 为子窗口创建独立的样式Style
@@ -1906,7 +2212,7 @@ class SimplePostmanApp(tk.Tk):
         self.set_button_businessTools = tk.Button(self, text="BusinessTools", command=self.create_tools_sub_window)  # 组件按钮格式化功能
         self.set_button_businessTools.grid(column=2, row=2)
 
-        self.set_button_businessTools = tk.Button(self, text="modifyExcel", command=self.create_modify_excel_sub_window)  # 组件按钮格式化功能
+        self.set_button_businessTools = tk.Button(self, text="ModifyExcel", command=self.create_modify_excel_sub_window)  # 组件按钮格式化功能
         self.set_button_businessTools.grid(column=3, row=2)
 
         self.set_button_ChangeImg = tk.Button(self, text="ChangeImg", command=self.create_tools_sub_window1)  # 组件按钮格式化功能
@@ -2089,31 +2395,241 @@ class SimplePostmanApp(tk.Tk):
         sub_style.configure('TCombobox', fieldbackground='white', background='white', foreground='black')
         sub_style.configure('TCombobox.Listbox', fieldbackground='white', background='white', foreground='black')
 
-        excel_file_path=''
-        # sheetname标签
-        sub_win.sheetname_label = ttk.Label(sub_win, text="sheetname:")
-        sub_win.sheetname_label.grid(column=0, row=0)
-        # 选择sheetname
-        sub_win.sheetname_combobox = ttk.Combobox(sub_win, state='NORMAL')
-        sub_win.sheetname_combobox.grid(column=1, row=0, sticky='ew')
-        # # 获取配置里的apiKey
-        # apiURLList = read_json_file(f'{current_script_path}/configini.json')['apiURL']
-        # sub_win.apiURL_combobox['values'] = apiURLList
-        # sub_win.apiURL_combobox.current(0)  # 设置默认值为列表中的第一个元素
-        # print(sub_win.apiURL_combobox.get())
-        # 保存apiURL
-        # JSON文件名为configin.json
-        json_file_path = f'{current_script_path}/configini.json'
-        sub_win.set_apiURL_button = tk.Button(
-            sub_win, text="save",
-            command=lambda: self.changeKeyValueInJsonFile2(
-                json_file_path,
-                'apiURL',
-                sub_win.apiURL_combobox.get(),
-                0
+        left_frame = tk.Frame(sub_win, bg="lightblue")
+        # center_frame = tk.Frame(sub_win, bg="lightblue")
+        # right_frame = tk.Frame(sub_win, bg="lightblue")
+        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # center_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)  # fill=tk.Y)
+
+        # --- sheetname选择区域 ---
+        sheetname_frame0 = tk.Frame(left_frame, bg="lightblue")
+        sheetname_frame0.pack(fill=tk.X, pady=2)
+
+        # 选择excel文件
+        sub_win.choiceExcel_button = tk.Button(
+            sheetname_frame0,
+            font=self.set_font_size('Song', 10, 'normal'),
+            text="ChoiceExcel",
+            bg="white",
+            highlightbackground='lightblue',
+            command=lambda: self.read_all_row_records_from_excel(
+                sub_win.ExcelPath_combobox,
+                sub_win.sheetName_combobox,
+                sub_win.columnName_combobox,
+                1
             )
         )  # 组件按期定格式
-        sub_win.set_apiURL_button.grid(column=2, row=0)
+        sub_win.choiceExcel_button.pack(side=tk.LEFT)
+
+        # --- sheetname选择区域 ---
+        sheetname_frame1 = tk.Frame(left_frame, bg="lightblue")
+        sheetname_frame1.pack(fill=tk.X, pady=2)
+
+        # ExcelPath标签
+        sub_win.ExcelPath_label = tk.Label(
+            sheetname_frame1,
+            text="ExcelPath:",
+            font=self.set_font_size('Song', 10, 'normal'),
+            foreground='black',
+            background='white',
+            highlightbackground='white'
+        )
+        sub_win.ExcelPath_label.pack(side=tk.LEFT)
+
+        # 下拉框选择ExcelPath
+        sub_win.ExcelPath_combobox = ttk.Combobox(
+            sheetname_frame1,
+            state='NORMAL',
+            font=self.set_font_size('Song', 10, 'normal'),
+            values=['']
+        )
+        sub_win.ExcelPath_combobox.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        sub_win.ExcelPath_combobox.current(0)
+
+        sheetname_frame2 = tk.Frame(left_frame, bg="lightblue")
+        sheetname_frame2.pack(fill=tk.X, pady=2)
+
+        # sheetname标签
+        sub_win.sheetname_label = tk.Label(
+            sheetname_frame2,
+            text="SheetName:",
+            font=self.set_font_size('Song', 10, 'normal'),
+            foreground='black',
+            background='white',
+            highlightbackground='white'
+        )
+        sub_win.sheetname_label.pack(side=tk.LEFT)
+
+        # 下拉框选择sheetname
+        sub_win.sheetName_combobox = ttk.Combobox(
+            sheetname_frame2,
+            state='NORMAL',
+            font=self.set_font_size('Song', 10, 'normal'),
+            values=['']
+        )
+        sub_win.sheetName_combobox.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        sub_win.sheetName_combobox.current(0)
+
+        sheetname_frame3 = tk.Frame(left_frame, bg="lightblue")
+        sheetname_frame3.pack(fill=tk.X, pady=2)
+
+        # columnName标签
+        sub_win.columnName_label = tk.Label(
+            sheetname_frame3,
+            text="columnName:",
+            font=self.set_font_size('Song', 10, 'normal'),
+            foreground='black',
+            background='white',
+            highlightbackground='white'
+        )
+        sub_win.columnName_label.pack(side=tk.LEFT)
+
+        # 下拉框选择columnName
+        sub_win.columnName_combobox = ttk.Combobox(
+            sheetname_frame3,
+            state='NORMAL',
+            font=self.set_font_size('Song', 10, 'normal'),
+            values=['']
+        )
+        sub_win.columnName_combobox.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        sub_win.columnName_combobox.current(0)
+
+        # --- sheetname选择区域 ---
+        sheetname_frame4 = tk.Frame(left_frame, bg="lightblue")
+        sheetname_frame4.pack(fill=tk.X, pady=2)
+
+        # 查找控件（嵌套Frame实现水平排列）
+        sub_win.excel_operation_combobox = ttk.Combobox(
+            sheetname_frame4,
+            font=self.set_font_size('Song', 10, 'normal'),
+            background='white',
+            values=['stripEmptyInColumn', '', ''],
+            state='NORMAL'
+        )
+        sub_win.excel_operation_combobox.pack(side=tk.LEFT)  # ,  expand=True, fill="both")
+        sub_win.excel_operation_combobox.current(0)
+
+        # 修改excel文件
+        sub_win.choiceExcel_button = tk.Button(
+            sheetname_frame4,
+            font=self.set_font_size('Song', 10, 'normal'),
+            text="ModifyExcel",
+            bg="white",
+            highlightbackground='lightblue',
+            command=lambda: self.excelCommonOperation(
+                sub_win,
+                sub_win.excel_operation_combobox,
+                sub_win.ExcelPath_combobox,
+                sub_win.sheetName_combobox,
+                sub_win.columnName_combobox
+            )
+        )  # 组件按期定格式
+        sub_win.choiceExcel_button.pack(side=tk.LEFT)
+
+
+
+        # 查看excel文件
+        sub_win.viewExcel_button = tk.Button(
+            sheetname_frame4,
+            font=self.set_font_size('Song', 10, 'normal'),
+            text="ViewExcel",
+            bg="white",
+            highlightbackground='lightblue',
+            command=lambda: self.thread_it(
+                self.view_data_in_a_sheet_of_excel(
+                    sub_win.ExcelPath_combobox.get(),
+                    sub_win.sheetName_combobox.get(),
+                    sub_win.excel_display_text
+                )
+            )
+        )  # 组件按期定格式
+        sub_win.viewExcel_button.pack(side=tk.LEFT)
+
+        # 查找控件（嵌套Frame实现水平排列）
+        sub_win.find_btn_combobox = ttk.Combobox(
+            sheetname_frame4,
+            font=self.set_font_size('Song', 10, 'normal'),
+            background='white',
+            values=['*', ',', '、', '\n', ' ', '\t'],
+            state='NORMAL'
+        )
+        sub_win.find_btn_combobox.pack(side=tk.LEFT)  # ,  expand=True, fill="both")
+        sub_win.find_btn_combobox.current(0)
+
+        sub_win.find_replace_btn = tk.Button(
+            sheetname_frame4,
+            font=self.set_font_size('Song', 10, 'normal'),
+            background='white',
+            highlightbackground='lightblue',
+            foreground='black',
+            text="Find",
+            command=lambda: self.find_or_replace(
+                sub_win.excel_display_text,
+                sub_win.find_btn_combobox,
+                sub_win.replace_btn_combobox,
+                'find'
+            )
+        )
+        sub_win.find_replace_btn.pack(side=tk.LEFT)
+
+        # 替换控件（嵌套Frame实现水平排列）
+        sub_win.replace_btn_combobox = ttk.Combobox(
+            sheetname_frame4,
+            font=self.set_font_size('Song', 10, 'normal'),
+            background='white',
+            values=['*', ',', '、', '\n', ' ', '\t'],
+            state='NORMAL'
+        )
+        sub_win.replace_btn_combobox.pack(side="left", padx=2)  # ,  expand=True, fill="both")
+        sub_win.replace_btn_combobox.current(0)
+
+        sub_win.replace_btn = tk.Button(
+            sheetname_frame4,
+            font=self.set_font_size('Song', 10, 'normal'),
+            background='white',
+            highlightbackground='lightblue',
+            foreground='black',
+            text="Replace",
+            command=lambda: self.find_or_replace(
+                sub_win.excel_display_text,
+                sub_win.find_btn_combobox,
+                sub_win.replace_btn_combobox,
+                'replace'
+            )
+        )
+        sub_win.replace_btn.pack(side="left")
+
+        # --- Excel展示区域 ---
+        excel_frame = tk.Frame(left_frame, bg="lightblue")
+        excel_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+
+        sub_win.excel_display_label = tk.Label(
+            excel_frame,
+            background='white',
+            font=self.set_font_size('Song', 10, 'normal'),
+            foreground='black',
+            text="ExcelDataDisplay:"
+        )
+        sub_win.excel_display_label.pack(anchor='w')
+
+        excel_display_scrollbar = tk.Scrollbar(excel_frame)
+        excel_display_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        sub_win.excel_display_text = tk.Text(
+            excel_frame,
+            yscrollcommand=excel_display_scrollbar.set,
+            background='lightblue',
+            highlightbackground='white',  # tk.Text背景色
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',
+            width=45,
+            height=10,
+            bg="lightskyblue"
+        )
+        sub_win.excel_display_text.pack(fill=tk.BOTH, expand=True)
+        self.add_function_buttons_in_request_text_for_tkText_pack(excel_frame, sub_win.excel_display_text, 1)
+        excel_display_scrollbar.config(command=sub_win.excel_display_text.yview)
+
 
     def create_setLLM_sub_widgets(self, sub_win):
         sub_style = ttk.Style(sub_win)  # 为子窗口创建独立的样式Style
@@ -2143,7 +2659,10 @@ class SimplePostmanApp(tk.Tk):
         # JSON文件名为configin.json
         json_file_path = f'{current_script_path}/configini.json'
         sub_win.set_apiURL_button = tk.Button(
-            sub_win, text="add",
+            sub_win,
+            text="add",
+            background="lightblue",
+            highlightbackground="lightblue",
             command=lambda: self.changeKeyValueInJsonFile_forLLMSet(
                 json_file_path,
                 'apiURL',
@@ -2176,7 +2695,10 @@ class SimplePostmanApp(tk.Tk):
         # JSON文件名为configin.json
         json_file_path = f'{current_script_path}/configini.json'
         sub_win.set_apiKey_button = tk.Button(
-            sub_win, text="add",
+            sub_win,
+            text="add",
+            background="lightblue",
+            highlightbackground="lightblue",
             command=lambda: self.changeKeyValueInJsonFile_forLLMSet(
                 json_file_path,
                 'apiKey',
@@ -2209,6 +2731,8 @@ class SimplePostmanApp(tk.Tk):
         sub_win.set_apiHeaders_button = tk.Button(
             sub_win,
             text="add",
+            background="lightblue",
+            highlightbackground="lightblue",
             command=lambda: self.changeKeyValueInJsonFile_forLLMSet(
                 json_file_path,
                 'apiHeaders',
@@ -2237,6 +2761,18 @@ class SimplePostmanApp(tk.Tk):
             )
         )  # 组件按钮绑定格式化函数功能
         sub_win.set_update_button.grid(column=0, row=3)
+
+        sub_win.set_screen_button = tk.Button(
+            sub_win,
+            text="screen",
+            bg="lightskyblue",
+            highlightbackground='lightblue',
+            background='lightblue',
+            foreground='black',
+            font=self.set_font_size('Song', 12, 'normal'),
+            command=lambda: self.start_region_selection_only_see_img()
+        )  # 组件按钮绑定格式化函数功能
+        sub_win.set_screen_button.grid(column=1, row=3)
 
     def create_business_tools_sub_widgets(self, sub_win):
         """创建图片OCR识别界面布局（左图右文）- 支持图片自适应填充"""
@@ -2691,6 +3227,133 @@ class SimplePostmanApp(tk.Tk):
         sub_win.WriteXmindToExcel_btn.pack(side="left", padx=2)
 
     def create_modify_img_sub_widgets(self, sub_win):
+        sub_style = ttk.Style(sub_win)  # 为子窗口创建独立的样式Style
+        sub_style.theme_use('clam')
+        # 配置Combobox及其下拉菜单样式
+        sub_style.configure('TCombobox', fieldbackground='white', background='white', foreground='black')
+        sub_style.configure('TCombobox.Listbox', fieldbackground='white', background='white', foreground='black')
+
+        """创建图片OCR识别界面布局（左图右文）- 支持图片自适应填充"""
+        # --- 主框架---
+        main_frame = tk.Frame(sub_win,background='lightblue',highlightbackground='white')
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        sub_style = ttk.Style(sub_win)  # 为子窗口创建独立的样式Style
+        sub_style.theme_use('clam')
+        # 配置Combobox及其下拉菜单样式
+        sub_style.configure('TCombobox', fieldbackground='white', background='white',foreground='black')
+        sub_style.configure('TCombobox.Listbox', fieldbackground='white', background='white', foreground='black')
+
+        # ===== 左侧图片展示区域 =====
+        left_img_frame = tk.Frame(
+            main_frame,
+            bd=2,
+            relief=tk.SUNKEN,
+            highlightbackground='white',
+            background='lightblue'
+        )
+        left_img_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+        scrollbar = tk.Scrollbar(left_img_frame)
+        self.left_img_output_text = tk.Text(
+            left_img_frame,
+            wrap=tk.WORD,
+            yscrollcommand=scrollbar.set,
+            background='lightblue',
+            highlightbackground='white',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='blue',# 字体颜色（蓝色）
+            padx=5,
+            pady=5
+        )
+        # tk.Text内添加功能按钮
+        self.add_function_buttons_in_img_text(sub_win, self.left_img_output_text, 1)
+        scrollbar.config(command=self.left_img_output_text.yview)
+
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.left_img_output_text.pack(fill=tk.BOTH, expand=True)
+        self.left_img_output_text.insert(tk.END, "")
+
+        # ===== 右侧OCR结果区域 =====
+        right_text_frame = tk.Frame(main_frame, bd=2, relief=tk.SUNKEN,highlightbackground='white',background='lightblue')
+        right_text_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        scrollbar1 = tk.Scrollbar(right_text_frame)
+        self.text_output = tk.Text(
+            right_text_frame,
+            wrap=tk.WORD,
+            yscrollcommand=scrollbar1.set,
+            background='lightblue',
+            highlightbackground='white',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='blue',# 字体颜色（蓝色）
+            padx=5,
+            pady=5
+        )
+        # tk.Text内添加功能按钮
+        self.add_function_buttons_in_img_text(sub_win, self.text_output, 2)
+        scrollbar1.config(command=self.text_output.yview)
+
+        scrollbar1.pack(side=tk.RIGHT, fill=tk.Y)
+        self.text_output.pack(fill=tk.BOTH, expand=True)
+        self.text_output.insert(tk.END, "")
+
+        # --- 第二行主框架 ---
+        main_frame1 = tk.Frame(sub_win, background='lightblue')
+        main_frame1.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # ===== 底部按钮区域 =====
+        btn_frame = tk.Frame(main_frame1, background='lightblue')
+        btn_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        self.see_lang_label_btn1=tk.Label(
+            btn_frame,
+            background='white',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',  # 字体颜色
+            text="识别语言:"
+        )
+        self.see_lang_label_btn1.pack(side=tk.LEFT, padx=(0, 5))
+
+        # 创建样式对象
+        style = ttk.Style()
+        # 配置Combobox的样式
+        # 注意：不同平台可能对样式的支持有所差异
+        style.configure(
+            'TCombobox',
+            fieldbackground='lightblue',  # 输入框的背景色
+            background='lightgreen' # 下拉列表的背景色
+        )
+        self.lang_combo_see = ttk.Combobox(
+            btn_frame,
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',  # 字体颜色
+            values=["中文", "英文", "日文", "韩文", "阿拉伯文"],
+            style = 'TCombobox'
+        )
+
+        self.lang_combo_see.pack(side=tk.LEFT, padx=(0, 10))
+        self.lang_combo_see.current(0)
+
+        self.see_content_label_btn1=tk.Label(
+            btn_frame,
+            background='white',
+            font=self.set_font_size('Song', 12, 'normal'),
+            foreground='black',  # 字体颜色
+            text="识别内容:"
+        )
+        self.see_content_label_btn1.pack(side=tk.LEFT, padx=(0, 5))
+        self.lang_combo_pattern = ttk.Combobox(btn_frame, values=["文本", "定位"])
+        self.lang_combo_pattern.pack(side=tk.LEFT, padx=(0, 10))
+        self.lang_combo_pattern.current(0)
+
+        self.copy_app_path_button = tk.Button(
+            btn_frame,
+            text="AppPathCopy",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            command=self.app_path_copy
+        )
+        self.copy_app_path_button.pack(side=tk.LEFT, padx=(0, 10))
+
+    def create_modify_img_sub_widgets1(self, sub_win):
         # 准备一些图片路径作为示例
         image_paths = [
             "test"
@@ -2861,8 +3524,10 @@ class SimplePostmanApp(tk.Tk):
             values=["中文", "英文", "日文", "韩文", "阿拉伯文"],
             style = 'TCombobox'
         )
+
         self.lang_combo_see.pack(side=tk.LEFT, padx=(0, 10))
         self.lang_combo_see.current(0)
+
         self.see_content_label_btn1=tk.Label(
             btn_frame,
             background='white',
@@ -2874,6 +3539,14 @@ class SimplePostmanApp(tk.Tk):
         self.lang_combo_pattern = ttk.Combobox(btn_frame, values=["文本", "定位"])
         self.lang_combo_pattern.pack(side=tk.LEFT, padx=(0, 10))
         self.lang_combo_pattern.current(0)
+
+        self.copy_app_path_button = tk.Button(
+            btn_frame,
+            text="AppPathCopy",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            command=self.app_path_copy
+        )
+        self.copy_app_path_button.pack(side=tk.LEFT, padx=(0, 10))
 
     def create_ocr_qa_sub_widgets(self, sub_win):
         sub_style = ttk.Style(sub_win)  # 为子窗口创建独立的样式Style
@@ -2899,7 +3572,7 @@ class SimplePostmanApp(tk.Tk):
             yscrollcommand=scrollbar.set,
             font=self.set_font_size('Song', 14, 'normal'),
             foreground='blue',
-            bg='lightblue',
+            bg='lightskyblue',
             highlightbackground='white',
             padx=5,
             pady=5
@@ -2923,7 +3596,7 @@ class SimplePostmanApp(tk.Tk):
             yscrollcommand=scrollbar.set,
             font=self.set_font_size('Song', 14, 'normal'),
             foreground='blue',
-            bg='lightblue',
+            bg='lightskyblue',
             highlightbackground='white',
             padx=5,
             pady=5
@@ -2958,7 +3631,13 @@ class SimplePostmanApp(tk.Tk):
         )
         self.select_qa_record_button.pack(side=tk.LEFT, padx=5)
 
-        self.qa_record_combo = ttk.Combobox(btn_group1, state='readonly', background = 'lightblue',width=30)
+        self.qa_record_combo = ttk.Combobox(
+            btn_group1,
+            state='readonly',
+            font=self.set_font_size('Song', 10, 'normal'),
+            background = 'lightblue',
+            width=30
+        )
         self.qa_record_combo.pack(side=tk.LEFT, padx=5)
         ##绑定回调函数不传递额外参数##
         self.qa_record_combo.bind('<<ComboboxSelected>>', self.fill_QA_record)
@@ -2973,6 +3652,57 @@ class SimplePostmanApp(tk.Tk):
             command=lambda: self.thread_it(self.delete_QA_records(self.qa_record_combo))
         )
         self.delete_qa_record_button.pack(side=tk.LEFT, padx=5)
+
+        # 截屏翻译英文
+        only_screen_trans_btn = tk.Button(
+            btn_group1,
+            font=self.set_font_size('Song', 10, 'normal'),
+            text="ScreenTrans",
+            highlightbackground='lightblue',  # tk.Text背景色
+            command=lambda: self.start_region_selection_see_English_img_and_translate()
+        )
+        only_screen_trans_btn.pack(side=tk.LEFT, padx=5)
+
+        # 搜索按钮
+        trans_English_btn = tk.Button(
+            btn_group1,
+            text="Translate",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            font=self.set_font_size('Song', 10, 'normal'),
+            anchor="center",
+            command=lambda: self.translateEnglishByLLM(left_English_entry.get())
+        )
+        trans_English_btn.pack(side=tk.LEFT, padx=5)
+
+        # 搜索which_text关键字结果
+        left_English_entry = ttk.Entry(
+            btn_group1,
+            font=self.set_font_size('Song', 10, 'normal'),
+            state='NORMAL'
+        )
+        left_English_entry.pack(side=tk.LEFT, padx=5)
+
+        # 搜索按钮
+        trans_English_paste_btn = tk.Button(
+            btn_group1,
+            text="Paste",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            font=self.set_font_size('Song', 10, 'normal'),
+            anchor="center",
+            command=lambda: self.paste1(sub_win,left_English_entry)
+        )
+        trans_English_paste_btn.pack(side=tk.LEFT, padx=5)
+
+        # 搜索按钮
+        trans_English_clear_btn = tk.Button(
+            btn_group1,
+            text="Clear",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            font=self.set_font_size('Song', 10, 'normal'),
+            anchor="center",
+            command=lambda: self.clearContent1(left_English_entry)
+        )
+        trans_English_clear_btn.pack(side=tk.LEFT, padx=5)
 
         # --- 第三行主框架 ---
         main_frame2 = tk.Frame(sub_win, background='lightblue',highlightbackground='white')
@@ -3039,6 +3769,15 @@ class SimplePostmanApp(tk.Tk):
         )
         self.insert_conversation_btn.pack(side=tk.LEFT)
 
+        self.copy_appPath_button = tk.Button(
+            btn_frame1,
+            text="AppPathCopy",
+            font=self.set_font_size('Song', 10, 'normal'),
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            command=self.app_path_copy
+        )
+        self.copy_appPath_button.pack(side=tk.LEFT)
+
     def create_screenshot_sub_widgets(self, sub_win):
         sub_win.screenshot_btn = tk.Button(
             sub_win,
@@ -3047,6 +3786,37 @@ class SimplePostmanApp(tk.Tk):
             command=lambda: self.start_region_selection_only_see_img()
         )  # 带参数
         sub_win.screenshot_btn.grid(column=0, row=0)
+
+    def create_menu(self, which_window):
+        """
+        通用菜单工厂函数
+        :param root: 父窗口对象
+        :param menu_config: 字典格式的菜单配置
+        :return: 构建好的菜单对象
+        """
+        menu_config = {
+            "文件": [
+                {"label": "新建", "command": lambda: print("新建")},
+                {"label": "打开", "command": lambda: print("打开")},
+                "---",
+                {"label": "退出", "command": which_window.quit}
+            ],
+            "编辑": [
+                {"label": "复制", "accelerator": "Ctrl+C"},
+                {"label": "粘贴", "state": "disabled"}  # 禁用状态示例
+            ]
+        }
+        menubar = tk.Menu(which_window)
+        for menu_label, items in menu_config.items():
+            submenu = tk.Menu(menubar, tearoff=0)
+            menubar.add_cascade(label=menu_label, menu=submenu)
+            for item in items:
+                if item == "---":  # 分隔线
+                    submenu.add_separator()
+                else:
+                    submenu.add_command(**item)
+        which_window.config(menu=menubar)
+        return menubar
 
     def select_image_for_ocr_tk(self):
         """Tkinter版本的选择图片方法"""
@@ -3248,7 +4018,7 @@ class SimplePostmanApp(tk.Tk):
                 photo = ImageTk.PhotoImage(resized_image)
 
                 # 4. 插入文字和图片并保持引用
-                self.left_img_output_text.insert("end", "")  # 插入文字
+                #self.left_img_output_text.insert("end", "")  # 插入文字
                 self.left_img_output_text.image_create("end", image=photo)  # 在末尾插入图片
                 self.left_img_output_text.insert("end", "\n")  # 继续插入文字
                 self.left_img_output_text.image = photo  # 防止被垃圾回收
@@ -3264,7 +4034,7 @@ class SimplePostmanApp(tk.Tk):
                 self.left_img_output_text.insert(tk.END, f'图片处理失败: {e}')
                 #messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
 
-    def seeOnly_imageText_via_ocr(self, img_path):
+    def seeOnly_imageText_via_ocr(self, img_path, pattern):
         if img_path:
             try:
                 # 调用OCR识别  param lang must in dict_keys(['ch', 'en', 'korean', 'japan', 'chinese_cht', 'ta', 'te', 'ka', 'latin', 'arabic', 'cyrillic', 'devanagari']), but got chi_sim
@@ -3273,7 +4043,7 @@ class SimplePostmanApp(tk.Tk):
                 #selected_lang = self.lang_combo.get()
                 lang = lang_map["中文"]
                 # 调用OCR方法
-                self.seeImgToTxtByPaddleOcr_no_inputTextWin(img_path, lang, 1)
+                self.seeImgToTxtByPaddleOcr_no_inputTextWin(img_path, lang, pattern)
             except Exception as e:
                 messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
     """
@@ -3295,9 +4065,9 @@ class SimplePostmanApp(tk.Tk):
                 button_frame1,
                 font=self.set_font_size('Song',10,'normal'),
                 text="Question",
-                background='lightblue',
-                bg='lightblue',
-                highlightbackground='lightblue',  # tk.Text背景色
+                background='blue',
+                activebackground='red',
+                highlightbackground='blue',  # tk.Text背景色
                 command=lambda: self.thread_it(self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini"))
             )  # 提问
             question_btn.pack(side=tk.LEFT, padx=2, pady=2)
@@ -3329,6 +4099,36 @@ class SimplePostmanApp(tk.Tk):
             )
             only_screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
+            # #截屏翻译英文
+            # only_screen_trans_btn = tk.Button(
+            #     button_frame1,
+            #     font=self.set_font_size('Song', 10, 'normal'),
+            #     text="ScreenTrans",
+            #     highlightbackground='lightblue',  # tk.Text背景色
+            #     command=lambda: self.start_region_selection_see_English_img_and_translate()
+            # )
+            # only_screen_trans_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+            # 搜索按钮
+            search_qa_btn = tk.Button(
+                button_frame1,
+                text="Find",
+                highlightbackground='lightblue',  # tk.Button按钮背景色
+                font=self.set_font_size('Song', 10, 'normal'),
+                anchor="center",
+                command=lambda: self.search_keyword_in_text(search_qa_combobox.get(), which_text)
+            )
+            search_qa_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+            # 搜索which_text关键字结果
+            search_qa_combobox = ttk.Combobox(
+                button_frame1,
+                font=self.set_font_size('Song', 10, 'normal'),
+                state='NORMAL'
+            )
+            search_qa_combobox.pack(side=tk.LEFT)
+            search_qa_combobox['values'] = ['']
+
         if pattern==2:
             # 自定义功能
             only_screenshot_btn = tk.Button(
@@ -3339,6 +4139,36 @@ class SimplePostmanApp(tk.Tk):
                 command=lambda: self.start_region_selection_only_see_img()
             )
             only_screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+            # # 截屏翻译英文
+            # only_screen_trans_btn = tk.Button(
+            #     button_frame1,
+            #     font=self.set_font_size('Song', 10, 'normal'),
+            #     text="ScreenTrans",
+            #     highlightbackground='lightblue',  # tk.Text背景色
+            #     command=lambda: self.start_region_selection_see_English_img_and_translate()
+            # )
+            # only_screen_trans_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+            # 搜索按钮
+            search_qa_btn = tk.Button(
+                button_frame1,
+                text="Find",
+                highlightbackground='lightblue',  # tk.Button按钮背景色
+                font=self.set_font_size('Song', 10, 'normal'),
+                anchor="center",
+                command=lambda: self.search_keyword_in_text(search_qa_combobox.get(), which_text)
+            )
+            search_qa_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+            # 搜索which_text关键字结果
+            search_qa_combobox = ttk.Combobox(
+                button_frame1,
+                font=self.set_font_size('Song', 10, 'normal'),
+                state='NORMAL'
+            )
+            search_qa_combobox.pack(side=tk.LEFT)
+            search_qa_combobox['values'] = ['']
 
         # 创建功能按钮的Frame（放在Text控件底部）
         button_frame2 = tk.Frame(which_text.master,background='lightblue')
@@ -3518,6 +4348,27 @@ class SimplePostmanApp(tk.Tk):
                 command=lambda: self.start_region_selection_only_see_img()
             )
             only_screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+            # 搜索按钮
+            search_img_btn = tk.Button(
+                button_frame1,
+                text="Find",
+                highlightbackground='lightblue',  # tk.Button按钮背景色
+                font=self.set_font_size('Song', 10, 'normal'),
+                anchor="center",
+                command=lambda: self.search_keyword_in_text(search_qa_combobox.get(), which_text)
+            )
+            search_img_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+            # 搜索which_text关键字结果
+            search_img_combobox = ttk.Combobox(
+                button_frame1,
+                font=self.set_font_size('Song', 10, 'normal'),
+                state='NORMAL'
+            )
+            search_img_combobox.pack(side=tk.LEFT)
+            search_img_combobox['values'] = ['']
+
         if pattern==2:
             # 自定义功能
             only_screenshot_btn = tk.Button(
@@ -3528,6 +4379,26 @@ class SimplePostmanApp(tk.Tk):
                 command=lambda: self.start_region_selection_only_see_img()
             )
             only_screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+            # 搜索按钮
+            search_img_btn = tk.Button(
+                button_frame1,
+                text="Find",
+                highlightbackground='lightblue',  # tk.Button按钮背景色
+                font=self.set_font_size('Song', 10, 'normal'),
+                anchor="center",
+                command=lambda: self.search_keyword_in_text(search_img_combobox.get(), which_text)
+            )
+            search_img_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+            # 搜索which_text关键字结果
+            search_img_combobox = ttk.Combobox(
+                button_frame1,
+                font=self.set_font_size('Song', 10, 'normal'),
+                state='NORMAL'
+            )
+            search_img_combobox.pack(side=tk.LEFT)
+            search_img_combobox['values'] = ['']
 
         # 创建功能按钮的Frame（放在Text控件底部）
         button_frame2 = tk.Frame(which_text.master,background='lightblue')
@@ -3681,7 +4552,7 @@ class SimplePostmanApp(tk.Tk):
         which_text.insert(tk.END,content)
 
     def start_region_selection_has_qa_inputTextWin(self, whichWin):
-        """启动区域选择模式（修复颜色错误版）"""
+        """启动区域选择模式"""
         # whichWin.withdraw()   # 隐藏窗口
 
         # 创建窗口
@@ -3730,7 +4601,7 @@ class SimplePostmanApp(tk.Tk):
         self.region_window.update_idletasks()
 
     def start_region_selection_has_img_inputTextWin(self, whichWin):
-        """启动区域选择模式（修复颜色错误版）"""
+        """启动区域选择模式"""
         # whichWin.withdraw()   # 隐藏窗口
 
         # 创建窗口
@@ -3780,7 +4651,7 @@ class SimplePostmanApp(tk.Tk):
         self.region_window.update_idletasks()
 
     def start_region_selection_only_see_img(self):
-        """启动区域选择模式（修复颜色错误版）"""
+        """启动区域选择模式"""
         # whichWin.withdraw()   # 隐藏窗口
 
         # 创建窗口
@@ -3815,6 +4686,56 @@ class SimplePostmanApp(tk.Tk):
         self.canvas.bind("<ButtonPress-1>", self.on_press)
         self.canvas.bind("<B1-Motion>", self.on_drag)
         self.canvas.bind("<ButtonRelease-1>", self.on_release_only_see_img)
+        self.region_window.bind("<Escape>", self.cancel_selection)
+
+        # 提示文本
+        self.canvas.create_text(
+            screen_width // 2,
+            30,
+            text="拖动鼠标选择区域 (ESC取消)",
+            fill="lightblue",
+            font=('PingFang SC', 16)
+        )
+
+        # 强制刷新
+        self.region_window.update_idletasks()
+
+    def start_region_selection_see_English_img_and_translate(self):
+        """启动区域选择模式"""
+        # whichWin.withdraw()   # 隐藏窗口
+
+        # 创建窗口
+        self.region_window = Toplevel()
+        self.region_window.overrideredirect(True)  # 移除窗口装饰
+
+        # macOS专用透明设置
+        self.region_window.configure(bg='systemTransparent')
+        self.region_window.attributes('-transparent', True)
+        self.region_window.attributes('-alpha', 0.7)
+        self.region_window.attributes('-topmost', True)
+
+        # 设置全屏尺寸
+        screen_width = self.region_window.winfo_screenwidth()
+        screen_height = self.region_window.winfo_screenheight()
+        self.region_window.geometry(f"{screen_width}x{screen_height}+0+0")
+
+        # 创建画布（使用标准颜色格式）
+        self.canvas = Canvas(
+            self.region_window,
+            cursor="cross",
+            bg='black',  # 改为标准颜色格式
+            highlightthickness=0
+        )
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        # 通过设置画布透明度来实现效果
+        self.canvas.config(bg='systemTransparent')  # 系统透明色
+        self.canvas['highlightbackground'] = 'systemTransparent'  # 系统透明色
+
+        # 绑定事件
+        self.canvas.bind("<ButtonPress-1>", self.on_press)
+        self.canvas.bind("<B1-Motion>", self.on_drag)
+        self.canvas.bind("<ButtonRelease-1>", self.on_release_see_English_img_and_translate)
         self.region_window.bind("<Escape>", self.cancel_selection)
 
         # 提示文本
@@ -3910,8 +4831,29 @@ class SimplePostmanApp(tk.Tk):
         self.region_window.destroy()
         self.region_window = None
 
-        # 短暂延迟确保窗口关闭
+        # 短暂延迟确保窗口关闭  capture_region_see_English_img_and_translate
         self.after(100, lambda: self.capture_region_only_see_img(x1, y1, x2, y2))
+
+    def on_release_see_English_img_and_translate(self, event):
+        """鼠标释放事件"""
+        if not self.rect:
+            return
+
+        # 获取选择的区域坐标
+        x1, y1, x2, y2 = self.canvas.coords(self.rect)
+        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+
+        # 确保坐标有效
+        if abs(x2 - x1) < 10 or abs(y2 - y1) < 10:
+            self.cancel_selection()
+            return
+
+            # 关闭选择窗口
+        self.region_window.destroy()
+        self.region_window = None
+
+        # 短暂延迟确保窗口关闭
+        self.after(100, lambda: self.capture_region_see_English_img_and_translate(x1, y1, x2, y2))
 
     def cancel_selection(self, event=None):
         """取消选择"""
@@ -3975,7 +4917,7 @@ class SimplePostmanApp(tk.Tk):
             self.thread_it(self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini"))
 
         except Exception as e:
-            tk.messagebox.showerror(" 错误", f"截图失败: {str(e)}")
+            tk.messagebox.showerror(" 错误", f"调用{self.capture_region.__name__}方法截图失败: {str(e)}")
             self.deiconify()
 
     def capture_region1(self, x1, y1, x2, y2):
@@ -4022,9 +4964,11 @@ class SimplePostmanApp(tk.Tk):
                 # 4. 插入文字和图片并保持引用
                 #self.clearContent(self.left_text_output)
                 #self.left_text_output.insert("end", " ")  # 插入文字
-                self.left_img_output_text.image_create("end-1c", image=photo)  # 在末尾插入图片，"end-1c"删除前导换行符
-                self.left_img_output_text.insert("end", "\n")  # 继续插入文字
-                self.left_img_output_text.image = photo  # 防止被垃圾回收
+                # self.left_img_output_text.image_create("end-1c", image=photo)  # 在末尾插入图片，"end-1c"删除前导换行符
+                # self.left_img_output_text.insert("end", "\n")  # 继续插入文字
+                # self.left_img_output_text.image = photo  # 防止被垃圾回收
+
+                print(f'输入框里的内容为：\n{self.left_img_output_text.get("1.0","end")}')
 
             #截图识别
             self.select_image_for_ocr_tk1(file_path)
@@ -4032,7 +4976,7 @@ class SimplePostmanApp(tk.Tk):
             # self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
 
         except Exception as e:
-            tk.messagebox.showerror(" 错误", f"截图失败: {str(e)}")
+            tk.messagebox.showerror(" 错误", f"调用{self.capture_region1.__name__}方法截图失败: {str(e)}")
             self.deiconify()
 
     def capture_region_only_see_img(self, x1, y1, x2, y2):
@@ -4058,12 +5002,41 @@ class SimplePostmanApp(tk.Tk):
             self.screenshot.save(file_path)
 
             #截图识别
-            self.seeOnly_imageText_via_ocr(file_path)
+            self.seeOnly_imageText_via_ocr(file_path,1)
 
             # self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
 
         except Exception as e:
-            tk.messagebox.showerror(" 错误", f"截图失败: {str(e)}")
+            tk.messagebox.showerror(" 错误",f"调用{self.capture_region_only_see_img.__name__}方法截图失败: {str(e)}")
+            self.deiconify()
+
+    def capture_region_see_English_img_and_translate(self, x1, y1, x2, y2):
+        """捕获选定区域"""
+        try:
+            # 调整坐标确保左上角到右下角
+            if x1 > x2:
+                x1, x2 = x2, x1
+            if y1 > y2:
+                y1, y2 = y2, y1
+
+            # 截图
+            self.screenshot = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+
+            # # 显示预览窗口
+            # self.show_preview()
+
+            # 生成带时间戳的文件名
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            default_filename = f"区域截图_{timestamp}.png"
+            # 保存截图
+            file_path = f'{current_script_path}/{screenshotFileName}/{default_filename}'
+            self.screenshot.save(file_path)
+
+            #截图识别 self.clipboard
+            self.seeOnly_imageText_via_ocr(file_path,0)
+
+        except Exception as e:
+            tk.messagebox.showerror(" 错误", f"调用{self.capture_region_see_English_img_and_translate.__name__}方法截图失败: {str(e)}")
             self.deiconify()
 
     def show_preview(self):
@@ -4131,7 +5104,7 @@ class SimplePostmanApp(tk.Tk):
                 preview_window.destroy()
                 self.deiconify()
         except Exception as e:
-            tk.messagebox.showerror(" 保存失败", f"无法保存文件: {str(e)}")
+            tk.messagebox.showerror(" 保存失败", f"调用{self.save_screenshot.__name__}方法无法保存文件: {str(e)}")
 
 
     def nested_to_string(self, nested_list):
@@ -4235,7 +5208,11 @@ class SimplePostmanApp(tk.Tk):
                 textResult = str(result)
             res.append(textResult)
         resText='\n'.join(res)
-        self.copy_content_no_win(resText)
+        if pattern == 1:
+            self.copy_content_no_win(resText)
+        elif pattern == 0:
+            print(f'resText:{resText}')
+            self.translateEnglishByLLM(resText)
 
     def seeImgToTxtByPaddleOcr_no_inputTextWin1(self, img_path, lang, pattern):
         # 创建PaddleOCR对象，指定语言模型，默认为中文英文模型
@@ -4649,6 +5626,24 @@ class SimplePostmanApp(tk.Tk):
             self.thread_it(self.clearContent(which_text))
         pass
 
+    def excelCommonOperation(self, which_win, which_operation_combo,which_excelPath_combo,which_sheetName_combo,which_columnName_combo):
+        operationName = which_operation_combo.get()
+        print(operationName)
+        if operationName == 'stripEmptyInColumn':
+            self.modify_keywords_in_a_sheet_of_excel(
+                which_excelPath_combo.get(),
+                which_sheetName_combo.get(),
+                which_columnName_combo.get(),
+                operationName
+            )
+        elif operationName == 'Copy':
+            pass
+        elif operationName == 'Paste':
+            pass
+        elif operationName == 'Clear':
+            pass
+        pass
+
     def format_content(self, which_text):
         formatted = self.format_json(which_text.get("1.0", tk.END))
         which_text.delete('1.0', tk.END)
@@ -4849,6 +5844,10 @@ class SimplePostmanApp(tk.Tk):
         # 清空输入框的内容
         which_text.delete("1.0", "end-1c")
 
+    def clearContent1(self, which_entry):
+        # 清空输入框的内容
+        which_entry.delete(0, tk.END)
+
     def paste(self, which_win, which_text):
         # 清空输入框的内容
         which_text.delete("1.0", "end-1c")
@@ -4856,6 +5855,14 @@ class SimplePostmanApp(tk.Tk):
         clipboard_content = which_win.clipboard_get()
         # 将内容插入到输入框
         which_text.insert('insert', clipboard_content)
+
+    def paste1(self, which_win, which_entry):
+        # 清空输入框的内容
+        which_entry.delete(0, tk.END)
+        # 获取煎贴板的内容
+        clipboard_content = which_win.clipboard_get()
+        # 将内容插入到输入框
+        which_entry.insert('insert', clipboard_content)
 
     def copy_value_of_key(self, which_win, which_text, targetkey):  # 获取输入框的内容
         input_content = which_text.get("1.0", "end-1c")
