@@ -43,6 +43,7 @@ import pandas as pd
 from tkinter.font import Font
 import subprocess
 from typing import List, Optional
+#import keyboard
 
 """
 /usr/local/bin/python3.7 -m pip install yourmodel -i https://pypi.tuna.tsinghua.edu.cn/simple
@@ -417,9 +418,9 @@ def save_qa_data(qtext,atext):
 
 def list_request_records():
     """列出所有保存的请求记录文件"""
-    files = os.listdir('requests_log')
+    files = os.listdir('requests_log') # get请求.json
     files.sort(reverse=True)
-    return files[::-1]
+    return files
 
 def list_qa_records():
     """列出所有保存的请求记录文件"""
@@ -867,17 +868,17 @@ class SimplePostmanApp(tk.Tk):
             save_qa_data(question,answer)
             self.continuing_save_question_and_ask(question,answer)
             self.messageInformInTransWin(answer,300000) #
-            self.load_qa_records(self.qa_record_combo)
+            # self.load_qa_records(self.qa_record_combo)
             sleep(delay)  # 避免频繁请求
         except Exception as e:
-            answer = f"ERROR: {str(e)}"
+            answer = f"调用{self.translateEnglishByLLM.__name__}方法发生ERROR: {str(e)}"
             print(answer)
             save_qa_data(question, answer)
             self.messageInformInTransWin(answer, 300000)
             sleep(delay)  # 避免频繁请求
         #return answer
 
-    def askAI(self, qtext, atext, model="gpt-4o-mini"):
+    def askAI(self, qtext, atext, flagLabel="1", model="gpt-4o-mini"):
         """单次提问函数"""
         # 配置API
         openai.api_key = \
@@ -896,44 +897,52 @@ class SimplePostmanApp(tk.Tk):
 
         question=qtext.get("1.0", tk.END)
 
-        # 判断qtext内是否包含ImageTk.PhotoImage图片对象
-        if self.has_photoimage(qtext):
-            print('有图片！')
-            last_item = next(reversed(image_references.items()))
-            img_path = last_item[0]  # 从全局引用处获取图片路径
-            #self.get_image_from_text(qtext, 'qa')
-            #self.clearContent(qtext)
+        try:
+            # 判断qtext内是否包含ImageTk.PhotoImage图片对象
+            if self.has_photoimage(qtext) and flagLabel==1:
+                print(f'文本框里有图片！')
+                last_item = next(reversed(image_references.items()))
+                img_path = last_item[0]  # 从全局引用处获取图片路径
+                # self.get_image_from_text(qtext, 'qa')
+                # self.clearContent(qtext)
 
-            # 1. 打开图片并获取控件宽度，图片转换为PhotoImage
-            image = Image.open(img_path)
-            photo = ImageTk.PhotoImage(image)
-            qtext.image_create("end", image=photo)
-            widget_width = qtext.winfo_width() - 20  # 预留边距
+                # 1. 打开图片并获取控件宽度，图片转换为PhotoImage
+                image = Image.open(img_path)
+                photo = ImageTk.PhotoImage(image)
+                qtext.image_create("end", image=photo)
+                widget_width = qtext.winfo_width() - 20  # 预留边距
 
-            # 2. 计算缩放比例（保持宽高比）
-            if widget_width < 1:  # 避免初始宽度为0
-                widget_width = 300  # 默认宽度
-            ratio = widget_width / image.width
-            new_height = int(image.height * ratio)
+                # 2. 计算缩放比例（保持宽高比）
+                if widget_width < 1:  # 避免初始宽度为0
+                    widget_width = 300  # 默认宽度
+                ratio = widget_width / image.width
+                new_height = int(image.height * ratio)
 
-            # 3. 缩放图片
-            resized_image = image.resize((widget_width, new_height), Image.LANCZOS)
-            photo = ImageTk.PhotoImage(resized_image)
+                # 3. 缩放图片
+                resized_image = image.resize((widget_width, new_height), Image.LANCZOS)
+                photo = ImageTk.PhotoImage(resized_image)
 
-            # 4. 插入文字和图片并保持引用
-            self.clearContent(qtext)
-            # which_text.insert("end", "")  # 插入文字
-            qtext.image_create("end", image=photo)  # 在末尾插入图片
-            qtext.insert("end", "\n")  # 继续插入文字
-            qtext.image = photo  # 防止被垃圾回收
-            self.messageInformInWin(f'获取图片成功', 3000)
+                # 4. 插入文字和图片并保持引用
+                self.clearContent(qtext)
+                # which_text.insert("end", "")  # 插入文字
+                # qtext.image_create("end", image=photo)  # 在末尾插入图片
+                # qtext.insert("end", "\n")  # 继续插入文字
+                # qtext.image = photo  # 防止被垃圾回收
+                self.messageInformInWin(f'获取图片成功', 3000)
 
-            question=self.seeImgToTxtByPaddleOcr_no_inputTextWin1(img_path, 'ch', 1)
-            qtext.insert("end", f"\n{question}")  # 继续插入文字
-            #image_references[img_path] = photo  # 保存引用
+                question = self.see_img_and_get_text(img_path, 'ch', 1)
+                qtext.insert("end", f"\n{question}")  # 继续插入文字
+                # image_references[img_path] = photo  # 保存引用
+            elif flagLabel==0:
+                print(f'文本框里没有图片！')
+            else:
+                print(f'文本框里没有图片！')
+        except Exception as e:
+            pass
+            #self.messageInformInWin(f"错误是:{e}",40000)
 
         delay = 1.0
-        self.messageInformInWin("提问中......", 2000)
+        self.messageInformInWin(f"提问中......", 2000)
         try:
             print(f"\n正在处理问题: {question[:30]}...")
 
@@ -952,6 +961,7 @@ class SimplePostmanApp(tk.Tk):
             self.clearContent(atext)
             atext.insert(tk.END,f'{answer}')
             self.load_qa_records(self.qa_record_combo)
+            self.qa_record_combo.set(list_qa_records()[0])
             sleep(delay)  # 避免频繁请求
         except Exception as e:
             answer = f"ERROR: {str(e)}"
@@ -1040,8 +1050,11 @@ class SimplePostmanApp(tk.Tk):
                 #return res
             if pattern==1:
                 which_excelPath_combo['values'] = [excel_file_path]
+                which_excelPath_combo.set(which_excelPath_combo['values'][0])
                 which_sheetName_combo['values'] = sheet_name_res
+                which_sheetName_combo.set(which_sheetName_combo['values'][0])
                 which_columnName_combo['values'] = column_name_res
+                which_columnName_combo.set(which_columnName_combo['values'][0])
                 #return sheet_name_res
 
         except FileNotFoundError:
@@ -1053,7 +1066,7 @@ class SimplePostmanApp(tk.Tk):
             self.messageInformInWin(f"调用{self.read_all_row_records_from_excel.__name__}方法错误: 处理文件时发生错误 - {e}",6000)
             return []
 
-    def modify_keywords_in_a_sheet_of_excel(self, file_path, sheetName, columnName, yourRule, output_path=None):
+    def modify_keywords_in_a_sheet_of_excel(self, file_path, sheetName, columnName, yourRule, keyword='',output_path=None):
         """
         修改 Excel 文件工作表中的某列数据，并保留所有未修改的工作表
         参数:
@@ -1082,11 +1095,17 @@ class SimplePostmanApp(tk.Tk):
                 df = all_dfs[sheetName]
                 if columnName in df.columns:
                     if yourRule == 'stripEmptyInColumn':
-                        # 修改指定列的所有值
+                        # 清除指定列前后的空格、换行符等
                         df[columnName] = df[columnName].astype(str).str.replace('\n', '', regex=False)  # 去除换行符
                         df[columnName] = df[columnName].str.strip()  # 去除首尾空格
                         print(
                             f"调用{self.modify_keywords_in_a_sheet_of_excel.__name__} 方法成功修改工作表 '{sheetName}' 中的\"{columnName}\"列")
+                    elif yourRule == 'clearKeyChInColumn' and keyword!='':
+                        # 清除指定列里的指定字符
+                        df[columnName] = df[columnName].str.replace(keyword, '')  # 去除换行符
+                        print(
+                            f"调用{self.modify_keywords_in_a_sheet_of_excel.__name__} 方法成功去除工作表 '{sheetName}' 中的\"{columnName}\"列的\"{keyword}\"字符")
+
                     elif yourRule == 'other':
                         pass  # 其他规则可以在这里扩展
                     else:
@@ -1526,9 +1545,19 @@ class SimplePostmanApp(tk.Tk):
         # label.pack()
         self.create_ocr_qa_sub_widgets(sub_window)
 
+    # def toggle_window(self,which_win):
+    #     if which_win.state() == 'normal':
+    #         which_win.withdraw()  # 隐藏窗口
+    #     else:
+    #         which_win.deiconify()  # 显示窗口
+
     def create_tools_sub_window4(self):
         # 创建工具子窗口
         sub_window = tk.Toplevel(self)
+
+        # # 绑定全局快捷键：Command+Shift+L
+        # keyboard.add_hotkey('Command+Shift+L', lambda :self.toggle_window(sub_window))
+
         sub_style = ttk.Style(sub_window)  # 为子窗口创建独立的样式Style
         sub_style.theme_use('clam')
         # 配置Combobox及其下拉菜单样式
@@ -1550,13 +1579,13 @@ class SimplePostmanApp(tk.Tk):
         screen_height = sub_window.winfo_screenheight()
         # 设置坐标
         x = (screen_width - 100) // 1
-        y = (screen_height - 30) // 1
+        y = (screen_height - 60) // 1
         # x = (screen_width - 150) // 2
         # y = (screen_height - 30) // 2
         # 设置应用名
         sub_window.title("")
         # 设置窗口展示位置和大小
-        sub_window.geometry(f"{100}x{30}+{x}+{y}")
+        sub_window.geometry(f"{100}x{60}+{x}+{y}")
         # 设置窗口自适应
         sub_window.grid_columnconfigure(1, weight=1)
         sub_window.grid_rowconfigure(5, weight=1)
@@ -1990,18 +2019,21 @@ class SimplePostmanApp(tk.Tk):
             text="Select Records:",
             highlightbackground='lightblue',  # tk.Button按钮背景色
             font=self.set_font_size('Song', 10, 'normal'),
-            command=self.find_file_to_fill_record
+            command=lambda :self.find_file_to_fill_record(self.record_combobox)
         )
         self.select_record_button.pack(side=tk.LEFT)
 
         self.record_combobox = ttk.Combobox(
             bottom_frame1,
             state='readonly',
+            values=list_request_records(),
             font=self.set_font_size('Song', 10, 'normal'),
             width=50
         )
         self.record_combobox.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        #self.record_combobox.current(0)
         self.record_combobox.bind('<<ComboboxSelected>>', self.fill_record)
+        self.record_combobox.set(list_request_records()[1])
 
         self.delete_record_button = tk.Button(
             bottom_frame1,
@@ -2233,7 +2265,7 @@ class SimplePostmanApp(tk.Tk):
             self,
             text="Select Records:",
             anchor='center',
-            command=self.find_file_to_fill_record
+            command=lambda : self.find_file_to_fill_record(self.record_combobox)
         )
         self.select_record_button.grid(column=0, row=20)
         self.record_combobox = ttk.Combobox(self, state='readonly', width=50)
@@ -2515,7 +2547,7 @@ class SimplePostmanApp(tk.Tk):
             sheetname_frame4,
             font=self.set_font_size('Song', 10, 'normal'),
             background='white',
-            values=['stripEmptyInColumn', '', ''],
+            values=['stripEmptyInColumn', 'clearKeyChInColumn', ''],
             state='NORMAL'
         )
         sub_win.excel_operation_combobox.pack(side=tk.LEFT)  # ,  expand=True, fill="both")
@@ -3577,7 +3609,7 @@ class SimplePostmanApp(tk.Tk):
 
         scrollbar = tk.Scrollbar(left_text_frame)
         # self.left_text_output = scrolledtext.ScrolledText(left_text_frame, wrap=tk.WORD, padx=5, pady=5, bg="lightskyblue")
-        self.left_text_output = tk.Text(
+        self.left_output_text = tk.Text(
             left_text_frame,
             wrap=tk.WORD,
             yscrollcommand=scrollbar.set,
@@ -3589,19 +3621,19 @@ class SimplePostmanApp(tk.Tk):
             pady=5
         )
         # tk.Text内添加功能按钮
-        self.add_function_buttons_in_qa_text(sub_win, self.left_text_output, 1)
-        scrollbar.config(command=self.left_text_output.yview)
+        self.add_function_buttons_in_qa_text(sub_win, self.left_output_text, 1)
+        scrollbar.config(command=self.left_output_text.yview)
 
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.left_text_output.pack(fill=tk.BOTH, expand=True)
-        self.left_text_output.insert(tk.END, " ") #请输入问题.......
+        self.left_output_text.pack(fill=tk.BOTH, expand=True)
+        self.left_output_text.insert(tk.END, " ") #请输入问题.......
 
         # ===== 右侧RIGHT输出结果区域 =====
         right_text_frame = tk.Frame(main_frame,background='lightblue',highlightbackground='white')
         right_text_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         scrollbar = tk.Scrollbar(right_text_frame,background='lightblue')
-        self.right_text_output = tk.Text(
+        self.right_output_text = tk.Text(
             right_text_frame,
             wrap=tk.WORD,
             yscrollcommand=scrollbar.set,
@@ -3613,12 +3645,12 @@ class SimplePostmanApp(tk.Tk):
             pady=5
         )
         # tk.Text内添加功能按钮
-        self.add_function_buttons_in_qa_text(sub_win, self.right_text_output, 2)
-        scrollbar.config(command=self.right_text_output.yview)
+        self.add_function_buttons_in_qa_text(sub_win, self.right_output_text, 2)
+        scrollbar.config(command=self.right_output_text.yview)
 
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.right_text_output.pack(fill=tk.BOTH, expand=True)
-        self.right_text_output.insert(tk.END, "")
+        self.right_output_text.pack(fill=tk.BOTH, expand=True)
+        self.right_output_text.insert(tk.END, "")
 
         # --- 第二行主框架 ---
         main_frame1 = tk.Frame(sub_win,background = 'lightblue',highlightbackground='white')
@@ -3638,13 +3670,14 @@ class SimplePostmanApp(tk.Tk):
             font=self.set_font_size('Song', 10, 'normal'),
             background='lightblue',
             highlightbackground='lightblue',
-            command=lambda: self.find_file_to_fill_QA_record(self.qa_record_combo,self.left_text_output, self.right_text_output)
+            command=lambda: self.find_file_to_fill_QA_record(self.qa_record_combo, self.left_output_text, self.right_output_text)
         )
         self.select_qa_record_button.pack(side=tk.LEFT, padx=5)
 
         self.qa_record_combo = ttk.Combobox(
             btn_group1,
             state='readonly',
+            values=list_qa_records(),
             font=self.set_font_size('Song', 10, 'normal'),
             background = 'lightblue',
             width=30
@@ -3653,6 +3686,7 @@ class SimplePostmanApp(tk.Tk):
         ##绑定回调函数不传递额外参数##
         self.qa_record_combo.bind('<<ComboboxSelected>>', self.fill_QA_record)
         self.load_qa_records(self.qa_record_combo)
+        self.qa_record_combo.set(list_qa_records()[0])
 
         self.delete_qa_record_button = tk.Button(
             btn_group1,
@@ -3776,7 +3810,7 @@ class SimplePostmanApp(tk.Tk):
             font=self.set_font_size('Song', 10, 'normal'),
             foreground='black',  # 字体颜色
             highlightbackground='lightblue',
-            command=lambda: self.thread_it(self.insert_content_in_text(self.left_text_output, self.conversation_combo.get()))
+            command=lambda: self.thread_it(self.insert_content_in_text(self.left_output_text, self.conversation_combo.get()))
         )
         self.insert_conversation_btn.pack(side=tk.LEFT)
 
@@ -3792,11 +3826,22 @@ class SimplePostmanApp(tk.Tk):
     def create_screenshot_sub_widgets(self, sub_win):
         sub_win.screenshot_btn = tk.Button(
             sub_win,
+            font=self.set_font_size('Song', 10, 'normal'),
             text="ScreenSub",
             background='lightblue',
             command=lambda: self.start_region_selection_only_see_img()
         )  # 带参数
         sub_win.screenshot_btn.grid(column=0, row=0)
+
+        # 截屏翻译英文
+        sub_win.screen_trans_btn = tk.Button(
+            sub_win,
+            font=self.set_font_size('Song', 10, 'normal'),
+            text="ScreenTrans",
+            highlightbackground='lightblue',  # tk.Text背景色
+            command=lambda: self.start_region_selection_see_English_img_and_translate()
+        )
+        sub_win.screen_trans_btn.grid(column=0, row=1)
 
     def create_menu(self, which_window):
         """
@@ -3894,7 +3939,7 @@ class SimplePostmanApp(tk.Tk):
                 image = Image.open(img_path)
                 photo = ImageTk.PhotoImage(image)
                 image_references[img_path] = photo  # 保存引用
-                widget_width = self.left_text_output.winfo_width() - 20  # 预留边距
+                widget_width = self.left_output_text.winfo_width() - 20  # 预留边距
 
                 # 2. 计算缩放比例（保持宽高比）
                 if widget_width < 1:  # 避免初始宽度为0
@@ -3907,25 +3952,26 @@ class SimplePostmanApp(tk.Tk):
                 photo = ImageTk.PhotoImage(resized_image)
 
                 # 4. 插入文字和图片并保持引用
-                self.clearContent(self.left_text_output)
-                self.left_text_output.insert("end", "")# 插入文字
-                self.left_text_output.image_create("end", image=photo)  # 在末尾插入图片
-                self.left_text_output.insert("end", "\n")  # 继续插入文字
-                self.left_text_output.image = photo  # 防止被垃圾回收
+                self.clearContent(self.left_output_text)
+                self.left_output_text.insert("end", "")# 插入文字
+                self.left_output_text.image_create("end", image=photo)  # 在末尾插入图片
+                self.left_output_text.insert("end", "\n")  # 继续插入文字
+                self.left_output_text.image = photo  # 防止被垃圾回收
 
-                # 调用OCR方法
-                self.seeImgToTxtByPaddleOcr1(self.left_text_output, img_path, lang, 1)
+                # 调用OCR方法，先插入图片到文本框里了，再用图片路径识别文字，插入文字到文本框里
+                self.see_img_and_insert_text(self.left_output_text, img_path, lang, 1)
 
-                self.thread_it(self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini"))
+                # 从插入图片和文字的文本框里进行问答操作
+                self.thread_it(self.askAI(self.left_output_text, self.right_output_text, "0", "gpt-4o-mini"))
 
                 #save_qa_data(self.left_text_output.get("1.0", "end-1c"), self.right_text_output.get("1.0", "end-1c"))
 
 
             except Exception as e:
-                self.left_text_output.insert(tk.END,f'图片处理失败: {e}')
+                self.left_output_text.insert(tk.END, f'调用{self.select_image_for_ocr_qa.__name__}方法进行图片处理失败: {e}')
                 #messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
 
-    def select_image_for_ocr_qa1(self,img_path):
+    def image_path_for_ocr_qa(self, img_path):
         if img_path:
             try:
                 # 调用OCR识别  param lang must in dict_keys(['ch', 'en', 'korean', 'japan', 'chinese_cht', 'ta', 'te', 'ka', 'latin', 'arabic', 'cyrillic', 'devanagari']), but got chi_sim
@@ -3934,35 +3980,15 @@ class SimplePostmanApp(tk.Tk):
                 selected_lang = self.choice_lang_combo.get()
                 lang = lang_map[selected_lang]
 
-                # 1. 打开图片并获取控件宽度
-                image = Image.open(img_path)
-                widget_width = self.left_text_output.winfo_width() - 20  # 预留边距
-
-                # 2. 计算缩放比例（保持宽高比）
-                if widget_width < 1:  # 避免初始宽度为0
-                    widget_width = 300  # 默认宽度
-                ratio = widget_width / image.width
-                new_height = int(image.height * ratio)
-
-                # 3. 缩放图片
-                resized_image = image.resize((widget_width, new_height), Image.LANCZOS)
-                photo = ImageTk.PhotoImage(resized_image)
-
-                # 4. 插入文字和图片并保持引用
-                self.left_text_output.insert("end", "")  # 插入文字
-                self.left_text_output.image_create("end", image=photo)  # 在末尾插入图片
-                self.left_text_output.insert("end", "\n")  # 继续插入文字
-                self.left_text_output.image = photo  # 防止被垃圾回收
-
                 # 调用OCR方法
-                self.seeImgToTxtByPaddleOcr1(self.left_text_output, img_path, lang,1)
+                self.see_img_and_insert_text(self.left_output_text, img_path, lang, 1)
 
                 #self.askAI(self.left_img_output, self.text_output,"gpt-4o-mini")
 
                 #save_qa_data(self.left_text_output.get("1.0", "end-1c"), self.right_text_output.get("1.0", "end-1c"))
 
             except Exception as e:
-                self.left_text_output.insert(tk.END, f'图片处理失败: {e}')
+                self.left_output_text.insert(tk.END, f'图片处理失败: {e}')
                 #messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
 
     def select_image_for_ocr_qa2(self,img_path):
@@ -3974,35 +4000,35 @@ class SimplePostmanApp(tk.Tk):
                 selected_lang = self.choice_lang_combo.get()
                 lang = lang_map[selected_lang]
 
-                # 1. 打开图片并获取控件宽度
-                image = Image.open(img_path)
-                widget_width = self.left_text_output.winfo_width() - 20  # 预留边距
-
-                # 2. 计算缩放比例（保持宽高比）
-                if widget_width < 1:  # 避免初始宽度为0
-                    widget_width = 300  # 默认宽度
-                ratio = widget_width / image.width
-                new_height = int(image.height * ratio)
-
-                # 3. 缩放图片
-                resized_image = image.resize((widget_width, new_height), Image.LANCZOS)
-                photo = ImageTk.PhotoImage(resized_image)
-
-                # 4. 插入文字和图片并保持引用
-                self.left_text_output.insert("end", "")  # 插入文字
-                self.left_text_output.image_create("end", image=photo)  # 在末尾插入图片
-                self.left_text_output.insert("end", "\n")  # 继续插入文字
-                self.left_text_output.image = photo  # 防止被垃圾回收
+                # # 1. 打开图片并获取控件宽度
+                # image = Image.open(img_path)
+                # widget_width = self.left_output_text.winfo_width() - 20  # 预留边距
+                #
+                # # 2. 计算缩放比例（保持宽高比）
+                # if widget_width < 1:  # 避免初始宽度为0
+                #     widget_width = 300  # 默认宽度
+                # ratio = widget_width / image.width
+                # new_height = int(image.height * ratio)
+                #
+                # # 3. 缩放图片
+                # resized_image = image.resize((widget_width, new_height), Image.LANCZOS)
+                # photo = ImageTk.PhotoImage(resized_image)
+                #
+                # # 4. 插入文字和图片并保持引用
+                # self.left_output_text.insert("end", "")  # 插入文字
+                # self.left_output_text.image_create("end", image=photo)  # 在末尾插入图片
+                # self.left_output_text.insert("end", "\n")  # 继续插入文字
+                # self.left_output_text.image = photo  # 防止被垃圾回收
 
                 # 调用OCR方法
-                self.seeImgToTxtByPaddleOcr1(self.left_text_output, img_path, lang,1)
+                self.see_img_and_insert_text(self.left_output_text, img_path, lang, 1)
 
-                self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini")
+                self.askAI(self.left_output_text, self.right_output_text, "gpt-4o-mini")
 
-                save_qa_data(self.left_text_output.get("1.0", "end-1c"), self.right_text_output.get("1.0", "end-1c"))
+                save_qa_data(self.left_output_text.get("1.0", "end-1c"), self.right_output_text.get("1.0", "end-1c"))
 
             except Exception as e:
-                self.left_text_output.insert(tk.END, f'图片处理失败: {e}')
+                self.left_output_text.insert(tk.END, f'图片处理失败: {e}')
                 #messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
 
     def select_image_for_ocr_tk1(self,img_path):
@@ -4035,7 +4061,7 @@ class SimplePostmanApp(tk.Tk):
                 self.left_img_output_text.image = photo  # 防止被垃圾回收
 
                 # 调用OCR方法
-                self.seeImgToTxtByPaddleOcr1(self.text_output, img_path, lang, 1)
+                self.see_img_and_insert_text(self.text_output, img_path, lang, 1)
 
                 #self.askAI(self.left_img_output, self.text_output,"gpt-4o-mini")
 
@@ -4054,7 +4080,7 @@ class SimplePostmanApp(tk.Tk):
                 #selected_lang = self.lang_combo.get()
                 lang = lang_map["中文"]
                 # 调用OCR方法
-                self.seeImgToTxtByPaddleOcr_no_inputTextWin(img_path, lang, pattern)
+                self.see_img_to_copy_or_translate_text(img_path, lang, pattern)
             except Exception as e:
                 messagebox.showerror(" 错误", f"图片处理失败: {str(e)}")
     """
@@ -4079,7 +4105,7 @@ class SimplePostmanApp(tk.Tk):
                 background='blue',
                 activebackground='red',
                 highlightbackground='blue',  # tk.Text背景色
-                command=lambda: self.thread_it(self.askAI(self.left_text_output,self.right_text_output,"gpt-4o-mini"))
+                command=lambda: self.thread_it(self.askAI(self.left_output_text, self.right_output_text, "gpt-4o-mini"))
             )  # 提问
             question_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
@@ -4088,7 +4114,7 @@ class SimplePostmanApp(tk.Tk):
                 font=self.set_font_size('Song', 10, 'normal'),
                 text="ScreenQA",
                 highlightbackground='lightblue',  # tk.Text背景色
-                command=lambda: self.thread_it(self.start_region_selection_has_qa_inputTextWin(self))
+                command=lambda: self.thread_it(self.start_region_selection_own_qa_inputTextWin(self))
             )
             screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
@@ -4560,9 +4586,9 @@ class SimplePostmanApp(tk.Tk):
             screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
     def insert_content_in_text(self,which_text,content):
-        which_text.insert(tk.END,content)
+        which_text.insert(tk.END,f'\n{content}')
 
-    def start_region_selection_has_qa_inputTextWin(self, whichWin):
+    def start_region_selection_own_qa_inputTextWin(self, whichWin):
         """启动区域选择模式"""
         # whichWin.withdraw()   # 隐藏窗口
 
@@ -4605,7 +4631,7 @@ class SimplePostmanApp(tk.Tk):
             30,
             text="拖动鼠标选择区域 (ESC取消)",
             fill="lightblue",
-            font=('PingFang SC', 16)
+            font=('PingFang SC', 26)
         )
 
         # 强制刷新
@@ -4655,7 +4681,7 @@ class SimplePostmanApp(tk.Tk):
             30,
             text="拖动鼠标选择区域 (ESC取消)",
             fill="lightblue",
-            font=('PingFang SC', 16)
+            font=('PingFang SC', 26)
         )
 
         # 强制刷新
@@ -4705,7 +4731,7 @@ class SimplePostmanApp(tk.Tk):
             30,
             text="拖动鼠标选择区域 (ESC取消)",
             fill="lightblue",
-            font=('PingFang SC', 16)
+            font=('PingFang SC', 26)
         )
 
         # 强制刷新
@@ -4755,7 +4781,7 @@ class SimplePostmanApp(tk.Tk):
             30,
             text="拖动鼠标选择区域 (ESC取消)",
             fill="lightblue",
-            font=('PingFang SC', 16)
+            font=('PingFang SC', 26)
         )
 
         # 强制刷新
@@ -4903,7 +4929,7 @@ class SimplePostmanApp(tk.Tk):
                 image = Image.open(file_path)
                 photo = ImageTk.PhotoImage(image)
                 image_references[file_path] = photo  # 保存引用
-                widget_width = self.left_text_output.winfo_width() - 20  # 预留边距
+                widget_width = self.left_output_text.winfo_width() - 20  # 预留边距
 
                 # 2. 计算缩放比例（保持宽高比）
                 if widget_width < 1:  # 避免初始宽度为0
@@ -4916,16 +4942,16 @@ class SimplePostmanApp(tk.Tk):
                 photo = ImageTk.PhotoImage(resized_image)
 
                 # 4. 插入文字和图片并保持引用
-                self.clearContent(self.left_text_output)
+                self.clearContent(self.left_output_text)
                 #self.left_text_output.insert("end", " ")  # 插入文字
-                self.left_text_output.image_create("end", image=photo)  # 在末尾插入图片，"end-1c"删除前导换行符
-                self.left_text_output.insert("end", "\n")  # 继续插入文字
-                self.left_text_output.image = photo  # 防止被垃圾回收
+                self.left_output_text.image_create("end", image=photo)  # 在末尾插入图片，"end-1c"删除前导换行符
+                self.left_output_text.insert("end", "\n")  # 继续插入文字
+                self.left_output_text.image = photo  # 防止被垃圾回收
 
             #截图识别
-            self.select_image_for_ocr_qa1(file_path)
+            self.image_path_for_ocr_qa(file_path)
 
-            self.thread_it(self.askAI(self.left_text_output, self.right_text_output,"gpt-4o-mini"))
+            self.thread_it(self.askAI(self.left_output_text, self.right_output_text, "gpt-4o-mini"))
 
         except Exception as e:
             tk.messagebox.showerror(" 错误", f"调用{self.capture_region.__name__}方法截图失败: {str(e)}")
@@ -5173,7 +5199,7 @@ class SimplePostmanApp(tk.Tk):
         self.copy_content_no_win(resText)
         which_text.insert('insert', resText)
 
-    def seeImgToTxtByPaddleOcr1(self, which_text, img_path, lang, pattern):
+    def see_img_and_insert_text(self, which_text, img_path, lang, pattern):
         # 创建PaddleOCR对象，指定语言模型，默认为中文英文模型
         ocr = PaddleOCR(
             use_textline_orientation=True,  # 是否使用方向分类
@@ -5198,7 +5224,7 @@ class SimplePostmanApp(tk.Tk):
         self.copy_content_no_win(resText)
         which_text.insert('insert', resText)
 
-    def seeImgToTxtByPaddleOcr_no_inputTextWin(self, img_path, lang, pattern):
+    def see_img_to_copy_or_translate_text(self, img_path, lang, pattern):
         # 创建PaddleOCR对象，指定语言模型，默认为中文英文模型
         ocr = PaddleOCR(
             use_textline_orientation=True,  # 是否使用方向分类
@@ -5225,7 +5251,7 @@ class SimplePostmanApp(tk.Tk):
             print(f'resText:{resText}')
             self.translateEnglishByLLM(resText)
 
-    def seeImgToTxtByPaddleOcr_no_inputTextWin1(self, img_path, lang, pattern):
+    def see_img_and_get_text(self, img_path, lang, pattern):
         # 创建PaddleOCR对象，指定语言模型，默认为中文英文模型
         ocr = PaddleOCR(
             use_textline_orientation=True,  # 是否使用方向分类
@@ -5538,6 +5564,7 @@ class SimplePostmanApp(tk.Tk):
                 self.response_text.insert(tk.END, self.format_json(response.text))
                 save_request_data(url, headers, method, body, self.try_parse_json(response.text))
                 self.load_records()
+                self.record_combobox.set(list_request_records()[1])
             elif method == 'POST':
                 response = requests.post(url=url, data=json.dumps(body), headers=headers)
                 # print(response.headens.get( set-Cookie!))
@@ -5563,13 +5590,16 @@ class SimplePostmanApp(tk.Tk):
                 self.response_text.insert(tk.END, self.format_json(responseJson))
                 save_request_data(url, headers, method, body, self.try_parse_json(responseJson))
                 self.load_records()
+                self.record_combobox.set(list_request_records()[1])
             else:
                 response = requests.request(method, url=url, params=json.dumps(body), headers=headers)  # 展示响应
                 self.response_text.delete('1.0', tk.END)
                 self.response_text.insert(tk.END, self.format_json(response.text))
                 save_request_data(url, headers, method, body, self.try_parse_json(response.text))
                 self.load_records()
+                self.record_combobox.set(list_request_records()[1])
             # messagebox.showinfo(Successful!!)
+
         except Exception as e:
             eDict = {}
             eDict['e'] = f'Error: {e}'
@@ -5647,8 +5677,14 @@ class SimplePostmanApp(tk.Tk):
                 which_columnName_combo.get(),
                 operationName
             )
-        elif operationName == 'Copy':
-            pass
+        elif operationName == 'clearKeyChInColumn':
+            self.modify_keywords_in_a_sheet_of_excel(
+                which_excelPath_combo.get(),
+                which_sheetName_combo.get(),
+                which_columnName_combo.get(),
+                operationName,
+                '*'
+            )
         elif operationName == 'Paste':
             pass
         elif operationName == 'Clear':
@@ -5683,15 +5719,17 @@ class SimplePostmanApp(tk.Tk):
             defaultPath = f'{current_script_path}/requests_log/post数字员工请求登录demo.json'
             self.before_login_combobox.insert(tk.END, defaultPath)
 
-    def find_file_to_fill_record(self):
+    def find_file_to_fill_record(self,which_combo):
         """通过选择的记录填充表单"""
-        record_file = self.record_combobox.get()
+        #record_file = self.record_combobox.get()
+        #record_file = which_combo.get()
         # path = f'{curnent_script-pathl/(logFileNamel/irecord_filel
         filetypes = [("JSON Files", "*.json")]
         path = filedialog.askopenfilename(title="选择json文件", filetypes=filetypes)
         # 打开一个文件选择对话框，用户选择json文件
         if not isfile(path):  # 检查所选文件是否存在
-            print(f"文件不存在:{path}")
+            print(f"调用{self.find_file_to_fill_record.__name__}方法查找的文件不存在！")
+            self.messageInformInWin(f"调用{self.find_file_to_fill_record.__name__}方法查找的文件不存在！",4000)
         else:
             pass
         try:
@@ -5713,7 +5751,7 @@ class SimplePostmanApp(tk.Tk):
                     tk.END,
                     json.dumps(request_data, ensure_ascii=False, indent=4).replace('\'', '\"')
                 )
-                self.response_text.delete(1, 0, tk.END)
+                self.response_text.delete(1.0, tk.END)
                 self.response_text.insert(
                     tk.END,
                     json.dumps(response_data, ensure_ascii=False, indent=4).replace('\'', '\"')
@@ -5723,7 +5761,7 @@ class SimplePostmanApp(tk.Tk):
 
     def find_file_to_fill_QA_record(self,which_combo,qtext,atext):
         """通过选择的记录填充表单"""
-        record_file = which_combo #self.record_combobox.get()
+        #record_file = which_combo #self.record_combobox.get()
         # path = f'{curnent_script-pathl/(logFileNamel/irecord_filel
         filetypes = [("Some Files", "*.txt")]
         path = filedialog.askopenfilename(title="选择文件", filetypes=filetypes)
@@ -6007,8 +6045,8 @@ class SimplePostmanApp(tk.Tk):
     def fill_QA_record(self, event):
         """通过选择的记录填充表单"""
         record_file = self.qa_record_combo.get() #self.record_combobox.get()
-        qtext = self.left_text_output
-        atext = self.right_text_output
+        qtext = self.left_output_text
+        atext = self.right_output_text
         path = f'{current_script_path}/{QALogFileName}/{record_file}'
         try:
             res = []
