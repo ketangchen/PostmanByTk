@@ -42,6 +42,8 @@ from openpyxl.styles import Border, Side, PatternFill
 import pandas as pd
 from tkinter.font import Font
 import subprocess
+import webbrowser
+from urllib.request  import pathname2url
 from typing import List, Optional
 #import keyboard
 
@@ -76,9 +78,14 @@ if not os.path.exists(filePath):
     os.makedirs(filePath)
 
 caseExcelFileName = 'caseExcel'
-caseExcelfilePath = f'{current_script_path}/{caseExcelFileName}'
-if not os.path.exists(caseExcelfilePath):
-    os.makedirs(caseExcelfilePath)
+caseExcelFilePath = f'{current_script_path}/{caseExcelFileName}'
+if not os.path.exists(caseExcelFilePath):
+    os.makedirs(caseExcelFilePath)
+
+resourceFileName = 'resource'
+resourceFilePath = f'{current_script_path}/{resourceFileName}'
+if not os.path.exists(resourceFilePath):
+    os.makedirs(resourceFilePath)
 
 encodingType = 'utf-8'
 
@@ -876,6 +883,58 @@ class SimplePostmanApp(tk.Tk):
             save_qa_data(question, answer)
             self.messageInformInTransWin(answer, 300000)
             sleep(delay)  # 避免频繁请求
+        #return answer
+
+    def askAIToExtractEntity(self, qtext, atext, model="gpt-4o-mini"):
+        """单次提问函数"""
+        # 配置API
+        openai.api_key = \
+        find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')), "apiKey")[0]
+        openai.base_url = \
+        find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')), "apiURL")[0]
+        openai.default_headers = \
+        find_value_of_key_in_nested_dict((read_json_file(f'{current_script_path}/configini.json')), "apiHeaders")[0]
+
+        if set_LLM['apiKey']!='':
+            openai.api_key = set_LLM['apiKey']
+        if set_LLM['apiURL'] != '':
+            openai.base_url = set_LLM['apiURL']
+        if set_LLM['apiHeaders'] != '':
+            openai.default_headers = set_LLM['apiHeaders']
+
+        question=f'{qtext.get("1.0", tk.END)}，请将这个文本中最核心的概念实体提取出来，只返回概念实体名称，其余输出不要'
+
+        delay = 1.0
+        #self.messageInformInWin(f"提问中......", 2000)
+        try:
+            print(f"\n正在处理问题: {question[:30]}...")
+
+            completion = openai.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": question}],
+                timeout=20  # 增加超时限制
+            )
+            answer = completion.choices[0].message.content
+            #extra_requirement='\n要求回答中不能包含*、-、+等字符，公式除外'
+            #answer=answer.replace('*','')
+            # 打印当前结果
+            print(f"【问题】{question}\n【回答】{answer}\n")
+            # save_qa_data(question,answer)
+            # self.continuing_save_question_and_ask(question,answer)
+            # self.clearContent(atext)
+            # atext.insert(tk.END,f'{answer}')
+            # self.load_qa_records(self.qa_record_combo)
+            # self.qa_record_combo.set(list_qa_records()[0])
+            sleep(delay)  # 避免频繁请求
+            return answer
+        except Exception as e:
+            answer = f"ERROR: {str(e)}"
+            print(answer)
+            # save_qa_data(question, answer)
+            # atext.insert(tk.END, f'{answer}')
+            # self.load_qa_records(self.qa_record_combo)
+            sleep(delay)  # 避免频繁请求
+            return answer
         #return answer
 
     def askAI(self, qtext, atext, flagLabel="1", model="gpt-4o-mini"):
@@ -3698,6 +3757,29 @@ class SimplePostmanApp(tk.Tk):
         )
         self.delete_qa_record_button.pack(side=tk.LEFT, padx=5)
 
+        self.save_qa_as_KG_button = tk.Button(
+            btn_group1,
+            text="SaveAs KG",
+            font=self.set_font_size('Song', 10, 'normal'),
+            background='lightblue',
+            highlightbackground='lightblue',
+            command=lambda: self.thread_it(self.save_qa_as_kg_in_gui(
+                self.left_output_text,
+                self.right_output_text)
+            )
+        )
+        self.save_qa_as_KG_button.pack(side=tk.LEFT, padx=5)
+
+        self.reindex_KG_button = tk.Button(
+            btn_group1,
+            text="Reindex KG",
+            font=self.set_font_size('Song', 10, 'normal'),
+            background='lightblue',
+            highlightbackground='lightblue',
+            command=lambda: self.thread_it(self.modify_id_to_order_in_jsonFile_of_KG())
+        )
+        self.reindex_KG_button.pack(side=tk.LEFT, padx=5)
+
         # 截屏翻译英文
         only_screen_trans_btn = tk.Button(
             btn_group1,
@@ -3748,6 +3830,32 @@ class SimplePostmanApp(tk.Tk):
             command=lambda: self.clearContent1(left_English_entry)
         )
         trans_English_clear_btn.pack(side=tk.LEFT, padx=5)
+
+        # --- 按钮 ---
+        btn_group2 = tk.Frame(left_frame, bd=1, relief=tk.RAISED, background='lightblue', highlightbackground='white')
+        btn_group2.pack(fill=tk.X, pady=5)
+
+        # 打开知识图谱可视化网页按钮
+        choose_KG_url_btn = tk.Button(
+            btn_group2,
+            text="chooseKG",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            font=self.set_font_size('Song', 10, 'normal'),
+            anchor="center",
+            command=lambda: self.select_and_open(0)
+        )
+        choose_KG_url_btn.pack(side=tk.LEFT, padx=5)
+
+        # 打开知识图谱可视化网页按钮
+        open_KG_url_btn = tk.Button(
+            btn_group2,
+            text="openKG",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            font=self.set_font_size('Song', 10, 'normal'),
+            anchor="center",
+            command=lambda: self.select_and_open(1)
+        )
+        open_KG_url_btn.pack(side=tk.LEFT, padx=5)
 
         # --- 第三行主框架 ---
         main_frame2 = tk.Frame(sub_win, background='lightblue',highlightbackground='white')
@@ -3822,6 +3930,22 @@ class SimplePostmanApp(tk.Tk):
             command=self.app_path_copy
         )
         self.copy_appPath_button.pack(side=tk.LEFT)
+
+    def select_and_open(self,pattern):
+        if pattern==0:
+            file_path = filedialog.askopenfilename(
+                filetypes=[("HTML Files", "*.html *.htm")]
+            )
+            # print(file_path) #
+            if file_path:
+                webbrowser.open("file://" + pathname2url(file_path))
+        elif pattern==1:
+            file_path =f'{resourceFilePath}/KG.html'
+            # print(file_path)  #
+            if file_path:
+                webbrowser.open("file://" + pathname2url(file_path))
+        else:
+            pass
 
     def create_screenshot_sub_widgets(self, sub_win):
         sub_win.screenshot_btn = tk.Button(
@@ -5294,6 +5418,95 @@ class SimplePostmanApp(tk.Tk):
         self.messageInformInWin('delete is successful!', 1500)
         self.load_qa_records(which_combo)
 
+    def open_jsonFile(self,path):
+        try:
+            data={}
+            # 打开JSON文件
+            with open(path, 'r') as file:
+                data = json.load(file)
+            return data
+        except Exception as e:
+            self.messageInformInWin(f'{self.open_jsonFile.__name__}方法打开文件失败！',3000)
+            return {}
+
+    def reindex_nodes_and_links_in_jsonFile_of_KG(self, data):
+        # 创建旧id到新id的映射字典
+        id_mapping = {}
+
+        # 重新编号nodes
+        for index, node in enumerate(data['nodes'], start=1):
+            old_id = node['id']
+            id_mapping[old_id] = str(index)  # 新id从1开始顺序递增
+            node['id'] = str(index)
+
+        # 更新links中的source和target
+        for link in data['links']:
+            link['source'] = id_mapping[link['source']]
+            link['target'] = id_mapping[link['target']]
+
+        return data
+
+    def modify_id_to_order_in_jsonFile_of_KG(self):
+        filetypes = [("JSON Files", "*.json")]
+        jsonPath = filedialog.askopenfilename(title="选择重新排序id的json文件", filetypes=filetypes)
+        # 打开一个文件选择对话框，用户选择json文件
+        if not isfile(jsonPath):  # 检查所选文件是否存在
+            print(f"文件不存在:{jsonPath}")
+            self.messageInformInWin(f"文件不存在:{jsonPath}", 3000)
+        else:
+            print(f"文件存在:{jsonPath}")
+        try:
+            jsonData = {}
+            jsonDataNew = {}
+            # 打开JSON文件
+            with open(jsonPath, 'r') as file:
+                jsonData = json.load(file)
+                print(jsonData)
+                jsonDataNew=self.reindex_nodes_and_links_in_jsonFile_of_KG(jsonData)
+            print(jsonDataNew)
+            # 写入JSON文件
+            with open(jsonPath, 'w', encoding='utf-8') as f:
+                json.dump(jsonDataNew, f, ensure_ascii=False, indent=4)  # 格式化输出
+            self.messageInformInWin(f'调用{self.modify_id_to_order_in_jsonFile_of_KG.__name__}方法成功！', 3000)
+        except Exception as e:
+            self.messageInformInWin(f'调用{self.modify_id_to_order_in_jsonFile_of_KG.__name__}方法发生异常：{e}',3000)
+
+    # 保存问答日志到知识图谱里
+    def save_qa_as_kg_in_gui(self, qtext, atext):
+        #
+        # qtext = q_text.get("1.0", tk.END)
+        # atext = a_text.get("1.0", tk.END)
+
+        try:
+            filePath = f'{resourceFilePath}/mykg.json'
+
+            # 打开JSON文件
+            jsonData = self.open_jsonFile(filePath)
+            print(jsonData)
+
+            entityName = self.askAIToExtractEntity(qtext, atext)
+
+            node_dict = {}
+            node_dict["id"] = str(random.randint(100, 100000))
+            node_dict["name"] = entityName
+            node_dict["description"] = atext.get("1.0", tk.END)
+            jsonData['nodes'].append(node_dict)
+
+            # 写入JSON文件
+            with open(filePath, 'w', encoding='utf-8') as f:
+                json.dump(jsonData, f, ensure_ascii=False, indent=4)  # 格式化输出
+
+            # link_dict = {}
+            # link_dict["source"]=1
+            # link_dict["target"]=1
+            # link_dict["type"]=1
+            # jsonData['links'].append(link_dict)
+            self.messageInformInWin(f'{self.save_qa_as_kg_in_gui.__name__}方法调用成功！',3000)
+        except Exception as e:
+            self.messageInformInWin(f'{self.save_qa_as_kg_in_gui.__name__}方法调用失败！报错为：{e}',3000)
+            pass
+
+
     # 一定程度上缩进复制的网页python代码字符串
     def restore_python_code(self, which_text, code_str):  # 定义一个栈来跟踪代码块的缩进
         indent_stack = [0]
@@ -5706,7 +5919,7 @@ class SimplePostmanApp(tk.Tk):
             return ""  # 返回一个空的JSON对象，如果输入无法解析
 
     def findLoginRecordFilePath(self):
-        filetypes = [("JSON Files", "*,json")]
+        filetypes = [("JSON Files", "*.json")]
         path = filedialog.askopenfilename(title="选择登录接口文件", filetypes=filetypes)
         # 打开一个文件选择对话框，用户选择json文件
         if not isfile(path):  # 检查所选文件是否存在
