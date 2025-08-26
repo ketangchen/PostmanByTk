@@ -235,16 +235,27 @@
         /* 实体悬浮信息框样式 */
         .entity-tooltip {
             position: absolute;
+            /* 1. 设置宽度（固定宽度或最大宽度） */
+            width: 300px; /* 固定宽度（例如300px） */
+            /* 或使用最大宽度（推荐，自适应内容）：
+            max-width: 300px; */
+
+            /* 2. 设置边框样式 */
+            border: 2px solid #4dd0e1; /* 边框宽度、样式、颜色 */
+            border-radius: 8px; /* 边框圆角（可选，让边角更圆润） */
+
+            /* 以下为原有其他样式（保持不变） */
             padding: 10px;
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 6px;
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
             font-size: 14px;
-            z-index: 1000; /* 确保悬浮框在最上层 */
-            max-width: 250px;
-            pointer-events: none; /* 鼠标事件穿透，不阻碍节点交互 */
-            opacity: 0; /* 默认隐藏 */
-            transition: opacity 0.2s ease; /* 淡入淡出动画 */
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            left: 0;
+            top: 0;
+            transform: translate(-50%, -50%);
         }
 
         .entity-tooltip h4 {
@@ -1642,68 +1653,42 @@
             // 节点组的鼠标事件绑定（替换原有代码）
             nodeGroups
                 .on('mouseover', function(event, d) {
-                    // 鼠标悬停时：基于实体位置定位tooltip
                     const tooltip = document.getElementById('entity-tooltip');
                     const titleEl = document.getElementById('tooltip-title');
                     const idEl = document.getElementById('tooltip-id');
                     const descEl = document.getElementById('tooltip-desc');
 
-                    // 填充实体信息
+                    // 1. 填充实体信息
                     titleEl.textContent = d.name;
                     idEl.textContent = d.id;
                     descEl.textContent = d.description || '无';
 
-                    // 获取实体在页面中的绝对位置（关键：基于实体坐标计算）
-                    const node = d3.select(this);
-                    const nodeTransform = node.attr('transform'); // 获取节点的transform属性（含位置信息）
-                    const translateMatch = nodeTransform.match(/translate\(([^,]+),([^)]+)\)/);
+                    // 2. 获取可视化面板的DOM元素及位置信息
+                    const visualizationPanel = document.querySelector('.visualization-panel');
+                    const panelRect = visualizationPanel.getBoundingClientRect(); // 面板在页面中的位置
 
-                    if (translateMatch) {
-                        // 解析节点的x、y坐标（相对于SVG画布）
-                        const nodeX = parseFloat(translateMatch[1]);
-                        const nodeY = parseFloat(translateMatch[2]);
+                    // 3. 计算面板中心点坐标（相对于页面左上角）
+                    const centerX = panelRect.left + panelRect.width / 2;
+                    const centerY = panelRect.top + panelRect.height / 2;
 
-                        // 将SVG画布坐标转换为页面绝对坐标
-                        const svgRect = svg.node().getBoundingClientRect();
-                        const scale = transform.k; // 获取当前缩放比例
-                        const translateX = transform.x; // 获取当前平移X
-                        const translateY = transform.y; // 获取当前平移Y
-
-                        // 计算tooltip在页面中的最终位置（基于实体位置偏移，避免遮挡）
-                        const tooltipX = svgRect.left + (nodeX * scale + translateX) + 30; // 实体右侧30px
-                        const tooltipY = svgRect.top + (nodeY * scale + translateY) - 10; // 实体上方10px
-
-                        // 设置tooltip位置
-                        tooltip.style.left = `${tooltipX}px`;
-                        tooltip.style.top = `${tooltipY}px`;
-                        tooltip.classList.add('visible');
-                    }
+                    // 4. 设置tooltip位置（基于页面坐标）
+                    tooltip.style.left = `${centerX}px`;
+                    tooltip.style.top = `${centerY}px`;
+                    tooltip.classList.add('visible');
                 })
                 .on('mousemove', function(event, d) {
-                    // 鼠标在实体上移动时：微调位置（保持相对实体的偏移）
+                    // 鼠标移动时保持居中（与mouseover逻辑一致）
                     const tooltip = document.getElementById('entity-tooltip');
-                    const node = d3.select(this);
-                    const nodeTransform = node.attr('transform');
-                    const translateMatch = nodeTransform.match(/translate\(([^,]+),([^)]+)\)/);
+                    const visualizationPanel = document.querySelector('.visualization-panel');
+                    const panelRect = visualizationPanel.getBoundingClientRect();
 
-                    if (translateMatch) {
-                        const nodeX = parseFloat(translateMatch[1]);
-                        const nodeY = parseFloat(translateMatch[2]);
-                        const svgRect = svg.node().getBoundingClientRect();
-                        const scale = transform.k;
-                        const translateX = transform.x;
-                        const translateY = transform.y;
+                    const centerX = panelRect.left + panelRect.width / 2;
+                    const centerY = panelRect.top + panelRect.height / 2;
 
-                        // 保持与mouseover时一致的偏移逻辑
-                        const tooltipX = svgRect.left + (nodeX * scale + translateX) + 30;
-                        const tooltipY = svgRect.top + (nodeY * scale + translateY) - 10;
-
-                        tooltip.style.left = `${tooltipX}px`;
-                        tooltip.style.top = `${tooltipY}px`;
-                    }
+                    tooltip.style.left = `${centerX}px`;
+                    tooltip.style.top = `${centerY}px`;
                 })
                 .on('mouseout', function() {
-                    // 鼠标离开时：隐藏tooltip
                     const tooltip = document.getElementById('entity-tooltip');
                     tooltip.classList.remove('visible');
                 });
