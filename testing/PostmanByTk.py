@@ -4694,6 +4694,28 @@ class SimplePostmanApp(tk.Tk):
             command=lambda: self.paste_image_to_text(which_text,'noqa'))
         paste_image_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
+        # 定位顶部按钮
+        go_up_btn = tk.Button(
+            button_frame1,
+            text="Up",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            font=self.set_font_size('Song', 10, 'normal'),
+            anchor="center",
+            command=lambda: self.up_or_down_in_text(which_text, 'up')
+        )
+        go_up_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        # 定位底部按钮
+        go_down_btn = tk.Button(
+            button_frame1,
+            text="Down",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            font=self.set_font_size('Song', 10, 'normal'),
+            anchor="center",
+            command=lambda: self.up_or_down_in_text(which_text, 'down')
+        )
+        go_down_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
     def add_function_buttons_in_request_text(self, which_win, which_text, pattern):
         # 创建功能按钮的Frame
         #["raised", "sunken", "flat", "ridge", "solid", "groove"]
