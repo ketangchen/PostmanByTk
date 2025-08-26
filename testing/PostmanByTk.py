@@ -3169,6 +3169,22 @@ class SimplePostmanApp(tk.Tk):
         which_text.tag_add("current_highlight", next_pos, f"{next_pos}+{len(keyword)}c")
         which_text.tag_config("current_highlight", background="orange")  # 当前项特殊高亮
 
+    def up_or_down_in_text(self, which_text, pattern):
+        # 定位到顶部的函数
+        if pattern=='up':
+            # "1.0" 表示第1行第0列（文本起始位置）
+            which_text.see("1.0")
+            # 可选：将光标也移动到顶部
+            which_text.mark_set(tk.INSERT, "1.0")
+        # 定位到底部的函数
+        elif pattern=='down':
+            # "end-1c" 表示文本末尾（减去最后一个换行符）
+            which_text.see(tk.END)
+            # 可选：将光标也移动到底部
+            which_text.mark_set(tk.INSERT, tk.END)
+        else:
+            pass
+
     def has_photoimage(self,which_text):
         content = which_text.dump("1.0", "end", tag=True, text=True, image=True)
         for index in range(len(content)-1,-1,-1):
@@ -3768,7 +3784,7 @@ class SimplePostmanApp(tk.Tk):
                 self.right_output_text)
             )
         )
-        self.save_qa_as_KG_button.pack(side=tk.LEFT, padx=5)
+        self.save_qa_as_KG_button.pack(side=tk.LEFT, padx=5)  #
 
         self.reindex_KG_button = tk.Button(
             btn_group1,
@@ -3779,6 +3795,18 @@ class SimplePostmanApp(tk.Tk):
             command=lambda: self.thread_it(self.modify_id_to_order_in_jsonFile_of_KG())
         )
         self.reindex_KG_button.pack(side=tk.LEFT, padx=5)
+
+        self.save_jsonStr_to_jsonFile_of_KG_button = tk.Button(
+            btn_group1,
+            text="SaveJsonToKG",
+            font=self.set_font_size('Song', 10, 'normal'),
+            background='lightblue',
+            highlightbackground='lightblue',
+            command=lambda: self.thread_it(self.save_jsonStr_to_jsonFile_in_gui(
+                self.right_output_text)
+            )
+        )
+        self.save_jsonStr_to_jsonFile_of_KG_button.pack(side=tk.LEFT, padx=5)
 
         # 截屏翻译英文
         only_screen_trans_btn = tk.Button(
@@ -4331,6 +4359,28 @@ class SimplePostmanApp(tk.Tk):
             search_qa_combobox.pack(side=tk.LEFT)
             search_qa_combobox['values'] = ['']
 
+        # 定位顶部按钮
+        go_up_btn = tk.Button(
+            button_frame1,
+            text="Up",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            font=self.set_font_size('Song', 10, 'normal'),
+            anchor="center",
+            command=lambda: self.up_or_down_in_text(which_text,'up')
+        )
+        go_up_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        # 定位底部按钮
+        go_down_btn = tk.Button(
+            button_frame1,
+            text="Down",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            font=self.set_font_size('Song', 10, 'normal'),
+            anchor="center",
+            command=lambda: self.up_or_down_in_text(which_text,'down')
+        )
+        go_down_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
         # 创建功能按钮的Frame（放在Text控件底部）
         button_frame2 = tk.Frame(which_text.master,background='lightblue')
         button_frame2.pack(side=tk.BOTTOM, fill=tk.X)
@@ -4471,6 +4521,27 @@ class SimplePostmanApp(tk.Tk):
                 command=lambda: self.thread_it(self.start_region_selection_only_see_img())
             )
             screenshot_btn.pack(side=tk.LEFT, padx=2, pady=2,  expand=True, fill="both")
+        # 定位顶部按钮
+        go_up_btn = tk.Button(
+            button_frame1,
+            text="Up",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            font=self.set_font_size('Song', 10, 'normal'),
+            anchor="center",
+            command=lambda: self.up_or_down_in_text(which_tkText, 'up')
+        )
+        go_up_btn.pack(side=tk.LEFT, padx=2, pady=2)
+
+        # 定位底部按钮
+        go_down_btn = tk.Button(
+            button_frame1,
+            text="Down",
+            highlightbackground='lightblue',  # tk.Button按钮背景色
+            font=self.set_font_size('Song', 10, 'normal'),
+            anchor="center",
+            command=lambda: self.up_or_down_in_text(which_tkText, 'down')
+        )
+        go_down_btn.pack(side=tk.LEFT, padx=2, pady=2)
 
     def add_function_buttons_in_img_text(self, which_win, which_text, pattern):
         # 创建功能按钮的Frame（放在Text控件底部）
@@ -5478,7 +5549,16 @@ class SimplePostmanApp(tk.Tk):
         # atext = a_text.get("1.0", tk.END)
 
         try:
-            filePath = f'{resourceFilePath}/mykg.json'
+            # 生成带时间戳的文件名
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            default_filename = f"问答日志保存图谱_{timestamp}.json"
+            # 保存json文件
+            filePath = f'{resourceFilePath}/{default_filename}'
+            if not isfile(filePath):  # 检查所选文件是否存在
+                print(f"文件不存在:{filePath}")
+                self.messageInformInWin(f"文件不存在:{filePath}", 3000)
+            else:
+                print(f"文件存在:{filePath}")
 
             # 打开JSON文件
             jsonData = self.open_jsonFile(filePath)
@@ -5506,6 +5586,39 @@ class SimplePostmanApp(tk.Tk):
             self.messageInformInWin(f'{self.save_qa_as_kg_in_gui.__name__}方法调用失败！报错为：{e}',3000)
             pass
 
+    # 保存jsonStr到json文件里
+    def save_jsonStr_to_jsonFile_in_gui(self, which_text):
+        # text = which_text.get("1.0", tk.END)
+        try:
+            # 生成带时间戳的文件名
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            default_filename = f"jsonStr保存_{timestamp}.json"
+            # 保存json文件
+            filePath = f'{resourceFilePath}/{default_filename}'
+            # if not isfile(filePath):  # 检查所选文件是否存在
+            #     print(f"文件不存在:{filePath}")
+            #     self.messageInformInWin(f"文件不存在:{filePath}", 3000)
+            # else:
+            #     print(f"文件存在:{filePath}")
+
+            # # 打开JSON文件
+            # jsonData = self.open_jsonFile(filePath)
+            # print(jsonData)
+
+            jsonContent = which_text.get("1.0", tk.END).strip()
+            jsonData = json.loads(jsonContent.replace('\'','\"'))
+
+            # 创建并写入JSON文件
+            # 使用with语句确保文件正确关闭
+            with open(filePath, "w", encoding="utf-8") as f:
+                # indent参数用于格式化输出，使JSON更易读
+                # ensure_ascii=False确保中文正常显示
+                json.dump(jsonData, f, indent=4, ensure_ascii=False)
+
+            self.messageInformInWin(f'{self.save_jsonStr_to_jsonFile_in_gui.__name__}方法调用成功！', 3000)
+        except Exception as e:
+            self.messageInformInWin(f'{self.save_jsonStr_to_jsonFile_in_gui.__name__}方法调用失败！报错为：{e}', 3000)
+            pass
 
     # 一定程度上缩进复制的网页python代码字符串
     def restore_python_code(self, which_text, code_str):  # 定义一个栈来跟踪代码块的缩进

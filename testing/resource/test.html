@@ -1,0 +1,2907 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>知识图谱可视化系统（含AI问答）</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e0f7fa 0%, #e8f5e9 100%);
+            color: #263238;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-header {
+            background: white;
+            padding: 12px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .app-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2e7d32;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .main-search-container {
+            flex: 1;
+            max-width: 800px;
+            position: relative;
+        }
+
+        .search-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .search-type-selector {
+            padding: 8px 12px;
+            border: 1px solid #b2ebf2;
+            border-radius: 4px;
+            background: white;
+            font-size: 14px;
+            color: #546e7a;
+            min-width: 120px; /* 限制选择框最小宽度 */
+        }
+
+        .search-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        #main-search-input {
+            width: 100%;
+            padding: 9px 15px 9px 40px;
+            border: 1px solid #b2ebf2;
+            border-radius: 20px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        #main-search-input:focus {
+            border-color: #4dd0e1;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(77, 208, 225, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #90a4ae;
+        }
+
+        .search-results-info {
+            position: absolute;
+            left: 15px;
+            bottom: -20px;
+            color: #2e7d32;
+            font-size: 12px;
+        }
+
+        .app-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .left-panel {
+            width: 300px;
+            background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
+            padding: 15px;
+            overflow-y: auto;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            margin: 10px;
+        }
+
+        .visualization-panel {
+            flex: 1;
+            position: relative;
+            margin: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+        }
+
+        #graph-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4dd0e1 0%, #80deea 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            color: #263238;
+        }
+
+        .control-btn:hover {
+            background: linear-gradient(135deg, #26c6da 0%, #4dd0e1 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #546e7a;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #b2ebf2;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.8);
+            color: #263238;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: #4dd0e1;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(77, 208, 225, 0.2);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-primary, .btn-secondary {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
+            color: #ffffff;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(102, 187, 106, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
+            box-shadow: 0 3px 6px rgba(102, 187, 106, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #b0bec5 0%, #cfd8dc 100%);
+            color: #263238;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #90a4ae 0%, #b0bec5 100%);
+        }
+
+        .list-title {
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e0f2f1;
+            color: #2e7d32;
+        }
+
+        .entity-item {
+            background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e9 100%);
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 3px solid #81c784;
+        }
+
+        .entity-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .entity-info p {
+            font-size: 12px;
+            color: #607d8b;
+            margin-top: 3px;
+        }
+
+        .entity-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .action-btn {
+            font-size: 14px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .action-btn:hover {
+            opacity: 1;
+        }
+
+        .edit-btn {
+            color: #2e7d32;
+        }
+
+        .delete-btn {
+            color: #e53935;
+        }
+
+        .no-data {
+            color: #78909c;
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        .detail-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e0f2f1;
+            color: #2e7d32;
+        }
+
+        .detail-section {
+            margin-bottom: 15px;
+        }
+
+        .detail-section h3 {
+            font-size: 14px;
+            color: #546e7a;
+            margin-bottom: 5px;
+        }
+
+        .detail-content {
+            font-size: 15px;
+            padding: 5px;
+            background: #f1f8e9;
+            border-radius: 4px;
+            color: #263238;
+        }
+
+        /* 关系边样式 - 带箭头 */
+        .links line {
+            stroke: #90a4ae;
+            stroke-opacity: 0.6;
+            transition: all 0.3s ease;
+        }
+
+        /* 箭头标记定义 */
+        .arrowhead {
+            fill: #90a4ae;
+            stroke-opacity: 0.6;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        /* 节点样式修改：大实心圆 + 内部文字 */
+        .nodes circle {
+            stroke: #ffffff;
+            stroke-width: 2px;
+            fill: #00BFFF;
+            r: 35;
+            transition: all 0.3s ease;
+        }
+
+        /* 节点文字样式：居中显示在圆内 */
+        .nodes text {
+            fill: #ffffff;
+            font-size: 8px;
+            font-weight: 500;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        /* 关系文字样式 */
+        .link-labels text {
+            fill: #546e7a;
+            font-size: 8px;
+            text-anchor: middle;
+            transition: all 0.3s ease;
+        }
+
+        /* 实体点击高亮 - 黄色样式 */
+        .highlighted circle {
+            stroke: #ffca28;
+            stroke-width: 3px;
+            animation: pulse 1.5s infinite;
+        }
+
+        .highlighted text {
+            fill: #f57f17;
+            font-weight: bold;
+        }
+
+        /* 搜索结果高亮 - 黄色样式 */
+        .search-highlighted circle {
+            stroke: #ffca28;
+            stroke-width: 4px;
+            animation: searchPulse 1.2s infinite;
+            fill: #66bb6a;
+        }
+
+        .search-highlighted text {
+            fill: #f57f17;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* 搜索结果的关系高亮 */
+        .search-highlighted-link {
+            stroke: #ffca28 !important;
+            stroke-width: 3px !important;
+            stroke-opacity: 1 !important;
+        }
+
+        /* 高亮状态的箭头 */
+        .search-highlighted-arrow, .arrow-highlighted {
+            fill: #ffca28 !important;
+            stroke-opacity: 1 !important;
+        }
+
+        /* 未涉及的元素降低可见性 */
+        .faded {
+            opacity: 0.3;
+        }
+
+        /* 关系点击高亮样式 */
+        .link-highlighted {
+            stroke: #ffca28 !important;
+            stroke-width: 3px !important;
+            stroke-opacity: 1 !important;
+            animation: pulseLink 1.5s infinite;
+        }
+
+        .link-label-highlighted {
+            fill: #f57f17 !important;
+            font-weight: bold !important;
+            font-size: 14px !important;
+        }
+
+        /* 关系关联实体高亮 */
+        .relation-entity-highlighted circle {
+            stroke: #ffca28 !important;
+            stroke-width: 3px !important;
+            animation: pulse 1.5s infinite;
+        }
+
+        .relation-entity-highlighted text {
+            fill: #f57f17 !important;
+            font-weight: bold !important;
+        }
+
+        @keyframes pulse {
+            0% { stroke-width: 3px; }
+            50% { stroke-width: 6px; }
+            100% { stroke-width: 3px; }
+        }
+
+        @keyframes pulseLink {
+            0% { stroke-width: 3px; }
+            50% { stroke-width: 5px; }
+            100% { stroke-width: 3px; }
+        }
+
+        @keyframes searchPulse {
+            0% { stroke-width: 4px; stroke-opacity: 1; }
+            50% { stroke-width: 6px; stroke-opacity: 0.8; }
+            100% { stroke-width: 4px; stroke-opacity: 1; }
+        }
+
+        .file-operation-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .file-input-container {
+            position: relative;
+            width: 100%;
+        }
+
+        #file-upload {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* 关系编辑表单样式 */
+        .relation-edit-form {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0f2f1;
+        }
+
+        .relation-item {
+            margin-bottom: 10px;
+            padding: 5px;
+            background: #f1f8e9;
+            border-radius: 4px;
+        }
+
+        /* 实体和关系类型选择下拉框样式 */
+        .entity-select-container, .relation-type-select-container {
+            position: relative;
+        }
+
+        .entity-dropdown, .relation-type-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #b2ebf2;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            margin-top: 2px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .entity-dropdown.visible, .relation-type-dropdown.visible {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 8px 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background-color: #e0f7fa;
+        }
+
+        .dropdown-item.active {
+            background-color: #81c784;
+            color: white;
+        }
+
+        /* ------------------------------ */
+        /* AI问答对话功能样式              */
+        /* ------------------------------ */
+        .ai-panel {
+            width: 320px;
+            background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
+            padding: 15px;
+            overflow-y: auto;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            margin: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ai-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0f2f1;
+        }
+
+        .ai-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4dd0e1 0%, #80deea 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .ai-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #263238;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding-right: 5px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            max-width: 85%;
+        }
+
+        .user-message {
+            margin-left: auto;
+        }
+
+        .ai-message {
+            margin-right: auto;
+        }
+
+        .message-bubble {
+            padding: 10px 15px;
+            border-radius: 18px;
+            position: relative;
+        }
+
+        .user-message .message-bubble {
+            background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-message .message-bubble {
+            background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+            color: #263238;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #90a4ae;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        #ai-input {
+            flex: 1;
+            padding: 10px 15px;
+            border-radius: 20px;
+            border: 1px solid #b2ebf2;
+            resize: none;
+            height: 42px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        #ai-input:focus {
+            border-color: #4dd0e1;
+            height: 80px;
+        }
+
+        #send-ai-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+        }
+
+        #send-ai-btn:hover {
+            background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
+            transform: scale(1.05);
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 12px;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background-color: #90a4ae;
+            border-radius: 50%;
+            display: inline-block;
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+
+        .typing-indicator span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .entity-reference {
+            color: #2e7d32;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
+
+        .entity-reference:hover {
+            color: #1b5e20;
+            text-decoration-style: solid;
+        }
+
+        /* 实体和关系编辑弹窗 */
+        .edit-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .edit-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(-20px);
+            transition: transform 0.3s;
+        }
+
+        .edit-modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0f2f1;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #90a4ae;
+        }
+
+        .modal-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-header">
+        <div class="app-title">
+            <i class="fas fa-project-diagram"></i>
+            <span>知识图谱可视化系统</span>
+        </div>
+
+        <div class="main-search-container">
+            <div class="search-wrapper">
+                <select id="search-type" class="search-type-selector">
+                    <option value="entityName">实体名称</option>
+                    <option value="entityId">实体ID</option>
+                    <option value="entityDesc">实体描述</option>
+                    <option value="relation">关系类型</option>
+                </select>
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="main-search-input" placeholder="搜索实体或关系...">
+                </div>
+                <button id="search-btn" class="btn-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            <div class="search-results-info" id="search-results-info"></div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <div class="left-panel">
+            <!-- 文件操作区域 -->
+            <div class="file-operation-group">
+                <div class="file-input-container">
+                    <button class="btn-secondary" style="width: 100%;">上传JSON文件</button>
+                    <input type="file" id="file-upload" accept=".json">
+                </div>
+
+                <button id="save-current-data" class="btn-primary">保存文件</button>
+
+                <div id="current-file-info" style="font-size: 12px; color: #546e7a; margin-top: -10px; margin-bottom: 10px; display: none;">
+                    当前文件: <span id="current-file-name">-</span>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3 id="entity-form-title" class="list-title">添加实体</h3>
+                <div class="form-group">
+                    <label for="entity-id">实体ID</label>
+                    <input type="text" id="entity-id" placeholder="输入唯一ID">
+                </div>
+                <div class="form-group">
+                    <label for="entity-name">实体名称</label>
+                    <input type="text" id="entity-name" placeholder="输入实体名称">
+                </div>
+                <div class="form-group">
+                    <label for="entity-desc">实体描述</label>
+                    <textarea id="entity-desc" rows="3" placeholder="输入实体描述"></textarea>
+                </div>
+                <div class="btn-group">
+                    <button id="add-entity" class="btn-primary">添加实体</button>
+                    <button id="update-entity" class="btn-primary" style="display: none;">更新实体</button>
+                    <button id="cancel-edit" class="btn-secondary" style="display: none;">取消</button>
+                    <button id="clear-entity-form" class="btn-secondary">清空</button>
+                </div>
+            </div>
+
+            <div class="form-section" style="margin-top: 30px;">
+                <h3 class="list-title">添加关系</h3>
+                <div class="form-group">
+                    <label for="source-entity-display">源实体</label>
+                    <div class="entity-select-container">
+                        <input type="text" id="source-entity-display" placeholder="选择或搜索源实体">
+                        <input type="hidden" id="source-entity" value="">
+                        <div class="entity-dropdown" id="source-entity-dropdown"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="target-entity-display">目标实体</label>
+                    <div class="entity-select-container">
+                        <input type="text" id="target-entity-display" placeholder="选择或搜索目标实体">
+                        <input type="hidden" id="target-entity" value="">
+                        <div class="entity-dropdown" id="target-entity-dropdown"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="relation-type-display">关系类型</label>
+                    <div class="relation-type-select-container">
+                        <input type="text" id="relation-type-display" placeholder="输入或选择关系类型">
+                        <input type="hidden" id="relation-type" value="">
+                        <div class="relation-type-dropdown" id="relation-type-dropdown"></div>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button id="add-relation" class="btn-primary">添加关系</button>
+                    <button id="update-relation-btn" class="btn-primary" style="display: none;">更新关系</button>
+                    <button id="clear-relation-form" class="btn-secondary">清空</button>
+                </div>
+            </div>
+
+            <div class="entity-list">
+                <h3 class="list-title">实体列表</h3>
+                <div id="entities-container">
+                    <div class="no-data">暂无实体数据</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="visualization-panel">
+            <div id="graph-container"></div>
+            <div class="controls">
+                <div class="control-btn" id="zoom-in" title="放大">+</div>
+                <div class="control-btn" id="zoom-out" title="缩小">-</div>
+                <div class="control-btn" id="fit-view" title="适配显示">⟲</div>
+                <div class="control-btn" id="reset-view" title="重置布局">⟳</div>
+            </div>
+        </div>
+
+        <div class="ai-panel">
+            <div class="ai-header">
+                <div class="ai-avatar">AI</div>
+                <div class="ai-title">知识图谱助手</div>
+            </div>
+
+            <div class="chat-container" id="chat-container">
+                <div class="message ai-message">
+                    <div class="message-bubble">
+                        您好！我是知识图谱助手，可以帮您查询和分析图谱中的实体与关系。您可以问我关于这些实体的问题，例如"人工智能包含哪些技术？"
+                    </div>
+                    <div class="message-time">刚刚</div>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <textarea id="ai-input" placeholder="请输入您的问题..."></textarea>
+                <button id="send-ai-btn">→</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 实体编辑弹窗 -->
+    <div class="edit-modal" id="entity-edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">编辑实体</h3>
+                <button class="close-modal" id="close-entity-modal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="modal-entity-id">实体ID</label>
+                <input type="text" id="modal-entity-id" disabled>
+            </div>
+            <div class="form-group">
+                <label for="modal-entity-name">实体名称</label>
+                <input type="text" id="modal-entity-name">
+            </div>
+            <div class="form-group">
+                <label for="modal-entity-desc">实体描述</label>
+                <textarea id="modal-entity-desc" rows="3"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancel-entity-edit">取消</button>
+                <button class="btn-primary" id="confirm-entity-edit">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 关系编辑弹窗 -->
+    <div class="edit-modal" id="relation-edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">编辑关系</h3>
+                <button class="close-modal" id="close-relation-modal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="modal-source-entity-display">源实体</label>
+                <div class="entity-select-container">
+                    <input type="text" id="modal-source-entity-display" placeholder="选择或搜索源实体">
+                    <input type="hidden" id="modal-source-entity" value="">
+                    <div class="entity-dropdown" id="modal-source-entity-dropdown"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="modal-target-entity-display">目标实体</label>
+                <div class="entity-select-container">
+                    <input type="text" id="modal-target-entity-display" placeholder="选择或搜索目标实体">
+                    <input type="hidden" id="modal-target-entity" value="">
+                    <div class="entity-dropdown" id="modal-target-entity-dropdown"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="modal-relation-type-display">关系类型</label>
+                <div class="relation-type-select-container">
+                    <input type="text" id="modal-relation-type-display" placeholder="输入或选择关系类型">
+                    <input type="hidden" id="modal-relation-type" value="">
+                    <div class="relation-type-dropdown" id="modal-relation-type-dropdown"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancel-relation-edit">取消</button>
+                <button class="btn-primary" id="confirm-relation-edit">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let graphData = { nodes: [], links: [] };
+        let svg = null;
+        let simulation = null;
+        let transform = d3.zoomIdentity;
+        let zoom = null; // 缩放行为对象
+        let selectedNode = null;
+        let selectedLink = null; // 当前选中的关系
+        let editingEntityId = null; // 当前编辑的实体ID
+        let editingLinkIndex = -1; // 当前编辑的关系索引
+        let searchResults = []; // 存储搜索结果
+        let currentResultIndex = -1; // 当前显示的结果索引
+        let lastSearchKeyword = ''; // 上一次搜索的关键字
+        let lastSearchType = 'entityName'; // 上一次搜索的类型
+        let linkElements = null; // 存储连线元素引用，用于高亮
+        let linkLabelElements = null; // 存储连线标签引用，用于高亮
+        let nodeGroups = null; // 存储节点组引用，用于高亮
+        let arrowElements = null; // 存储箭头元素引用
+        let currentFilePath = null; // 当前打开的文件路径
+        let usedRelationTypes = new Set(); // 已使用的关系类型集合
+        let isAIGenerating = false; // AI是否正在生成回答
+
+        // DOM元素
+        const entityIdInput = document.getElementById('entity-id');
+        const entityNameInput = document.getElementById('entity-name');
+        const entityDescInput = document.getElementById('entity-desc');
+        const addEntityBtn = document.getElementById('add-entity');
+        const updateEntityBtn = document.getElementById('update-entity');
+        const cancelEditBtn = document.getElementById('cancel-edit');
+        const clearEntityFormBtn = document.getElementById('clear-entity-form');
+        const sourceEntityInput = document.getElementById('source-entity');
+        const sourceEntityDisplay = document.getElementById('source-entity-display');
+        const sourceEntityDropdown = document.getElementById('source-entity-dropdown');
+        const targetEntityInput = document.getElementById('target-entity');
+        const targetEntityDisplay = document.getElementById('target-entity-display');
+        const targetEntityDropdown = document.getElementById('target-entity-dropdown');
+        const relationTypeInput = document.getElementById('relation-type');
+        const relationTypeDisplay = document.getElementById('relation-type-display');
+        const relationTypeDropdown = document.getElementById('relation-type-dropdown');
+        const addRelationBtn = document.getElementById('add-relation');
+        const updateRelationBtn = document.getElementById('update-relation-btn');
+        const clearRelationFormBtn = document.getElementById('clear-relation-form');
+        const entitiesContainer = document.getElementById('entities-container');
+        const searchInput = document.getElementById('main-search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const searchTypeSelect = document.getElementById('search-type');
+        const searchResultsInfo = document.getElementById('search-results-info');
+        const zoomInBtn = document.getElementById('zoom-in');
+        const zoomOutBtn = document.getElementById('zoom-out');
+        const fitViewBtn = document.getElementById('fit-view');
+        const resetViewBtn = document.getElementById('reset-view');
+        const entityFormTitle = document.getElementById('entity-form-title');
+        const fileUploadInput = document.getElementById('file-upload');
+        const saveCurrentDataBtn = document.getElementById('save-current-data');
+        const currentFileInfo = document.getElementById('current-file-info');
+        const currentFileName = document.getElementById('current-file-name');
+
+        // 编辑弹窗元素
+        const entityEditModal = document.getElementById('entity-edit-modal');
+        const closeEntityModal = document.getElementById('close-entity-modal');
+        const cancelEntityEdit = document.getElementById('cancel-entity-edit');
+        const confirmEntityEdit = document.getElementById('confirm-entity-edit');
+        const modalEntityId = document.getElementById('modal-entity-id');
+        const modalEntityName = document.getElementById('modal-entity-name');
+        const modalEntityDesc = document.getElementById('modal-entity-desc');
+
+        const relationEditModal = document.getElementById('relation-edit-modal');
+        const closeRelationModal = document.getElementById('close-relation-modal');
+        const cancelRelationEdit = document.getElementById('cancel-relation-edit');
+        const confirmRelationEdit = document.getElementById('confirm-relation-edit');
+        const modalSourceEntity = document.getElementById('modal-source-entity');
+        const modalSourceEntityDisplay = document.getElementById('modal-source-entity-display');
+        const modalSourceEntityDropdown = document.getElementById('modal-source-entity-dropdown');
+        const modalTargetEntity = document.getElementById('modal-target-entity');
+        const modalTargetEntityDisplay = document.getElementById('modal-target-entity-display');
+        const modalTargetEntityDropdown = document.getElementById('modal-target-entity-dropdown');
+        const modalRelationType = document.getElementById('modal-relation-type');
+        const modalRelationTypeDisplay = document.getElementById('modal-relation-type-display');
+        const modalRelationTypeDropdown = document.getElementById('modal-relation-type-dropdown');
+
+        // AI相关元素
+        const aiInput = document.getElementById('ai-input');
+        const sendAiBtn = document.getElementById('send-ai-btn');
+        const chatContainer = document.getElementById('chat-container');
+
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', initialize);
+
+        // 初始化函数
+        async function initialize() {
+            console.log('系统初始化开始');
+            // 初始化默认数据
+            graphData = {
+                nodes: [
+                    { id: "1", name: "人工智能", description: "研究如何使机器模拟人类智能的科学" },
+                    { id: "2", name: "机器学习", description: "人工智能的一个分支" },
+                    { id: "3", name: "深度学习", description: "机器学习的一个分支" },
+                    { id: "4", name: "神经网络", description: "受人脑结构启发的计算模型" },
+                    { id: "5", name: "计算机视觉", description: "使计算机能够从图像中获取理解的领域" },
+                    { id: "6", name: "人工智能", description: "另一个名为人工智能的实体（测试用）" },
+                    { id: "7", name: "神经网络", description: "另一个神经网络实体（测试用）" }
+                ],
+                links: [
+                    { source: "1", target: "2", type: "包含" },
+                    { source: "2", target: "3", type: "包含" },
+                    { source: "3", target: "4", type: "基于" },
+                    { source: "1", target: "5", type: "包含" },
+                    { source: "5", target: "3", type: "应用" },
+                    { source: "6", target: "2", type: "包含" },
+                    { source: "6", target: "5", type: "包含" },
+                    { source: "3", target: "7", type: "基于" },
+                    { source: "4", target: "7", type: "关联" },
+                    { source: "1", target: "6", type: "相似" }
+                ]
+            };
+
+            // 初始化已使用的关系类型集合
+            updateUsedRelationTypes();
+
+            updateEntityDropdowns();
+            updateRelationTypeDropdown();
+            renderEntityList();
+            initializeGraph();
+            setupEventListeners();
+            // 初始化实体表单默认值
+            populateDefaultEntityValues();
+            console.log('系统初始化完成');
+        }
+
+        // 更新已使用的关系类型集合
+        function updateUsedRelationTypes() {
+            usedRelationTypes.clear();
+            graphData.links.forEach(link => {
+                usedRelationTypes.add(link.type);
+            });
+        }
+
+        // 更新关系类型下拉框
+        function updateRelationTypeDropdown() {
+            relationTypeDropdown.innerHTML = '';
+            modalRelationTypeDropdown.innerHTML = '';
+
+            const relationTypes = Array.from(usedRelationTypes).sort();
+
+            if (relationTypes.length === 0) {
+                const emptyItem = document.createElement('div');
+                emptyItem.className = 'dropdown-item';
+                emptyItem.textContent = '暂无关系类型';
+                emptyItem.style.cursor = 'default';
+                emptyItem.style.opacity = '0.7';
+                relationTypeDropdown.appendChild(emptyItem);
+                modalRelationTypeDropdown.appendChild(emptyItem.cloneNode(true));
+                return;
+            }
+
+            relationTypes.forEach(type => {
+                // 添加到普通下拉框
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.textContent = type;
+                item.dataset.type = type;
+
+                item.addEventListener('click', () => {
+                    relationTypeInput.value = type;
+                    relationTypeDisplay.value = type;
+                    relationTypeDropdown.classList.remove('visible');
+                });
+
+                relationTypeDropdown.appendChild(item);
+
+                // 添加到模态框下拉框
+                const modalItem = item.cloneNode(true);
+                modalItem.addEventListener('click', () => {
+                    modalRelationType.value = type;
+                    modalRelationTypeDisplay.value = type;
+                    modalRelationTypeDropdown.classList.remove('visible');
+                });
+                modalRelationTypeDropdown.appendChild(modalItem);
+            });
+        }
+
+        // 过滤关系类型
+        function filterRelationTypes(keyword) {
+            if (!keyword) {
+                return Array.from(usedRelationTypes).sort();
+            }
+
+            const lowerKeyword = keyword.toLowerCase();
+            return Array.from(usedRelationTypes).filter(type =>
+                type.toLowerCase().includes(lowerKeyword)
+            );
+        }
+
+        // ------------------------------
+        // 文件上传与保存功能
+        // ------------------------------
+        function setupFileEventListeners() {
+            // 上传JSON文件
+            fileUploadInput.addEventListener('change', handleFileUpload);
+
+            // 为上传按钮添加点击事件，触发文件选择
+            document.querySelector('.file-input-container .btn-secondary').addEventListener('click', () => {
+                fileUploadInput.click();
+            });
+
+            // 保存当前数据到本地
+            saveCurrentDataBtn.addEventListener('click', saveCurrentData);
+        }
+
+        function handleFileUpload(event) {
+            // 确保有文件被选择
+            if (!event.target.files || event.target.files.length === 0) {
+                console.log('未选择文件');
+                return;
+            }
+
+            const file = event.target.files[0];
+            console.log('选择的文件:', file);
+
+            if (!file.name.endsWith('.json')) {
+                alert('请上传JSON格式的文件');
+                fileUploadInput.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadstart = () => {
+                console.log('开始读取文件...');
+            };
+
+            reader.onload = function(e) {
+                try {
+                    console.log('文件读取完成，开始解析');
+                    const importedData = JSON.parse(e.target.result);
+
+                    if (!importedData.nodes || !importedData.links ||
+                        !Array.isArray(importedData.nodes) || !Array.isArray(importedData.links)) {
+                        throw new Error('JSON文件格式不正确，需包含nodes和links数组');
+                    }
+
+                    const validNodes = importedData.nodes.every(node =>
+                        node.id !== undefined && node.name !== undefined
+                    );
+                    if (!validNodes) {
+                        throw new Error('节点数据不完整，每个节点需包含id和name字段');
+                    }
+
+                    const validLinks = importedData.links.every(link =>
+                        link.source !== undefined && link.target !== undefined && link.type !== undefined
+                    );
+                    if (!validLinks) {
+                        throw new Error('关系数据不完整，每个关系需包含source、target和type字段');
+                    }
+
+                    graphData = importedData;
+                    currentFilePath = file.name;
+                    currentFileName.textContent = file.name;
+                    currentFileInfo.style.display = 'block';
+
+                    // 更新已使用的关系类型
+                    updateUsedRelationTypes();
+
+                    updateEntityDropdowns();
+                    updateRelationTypeDropdown();
+                    renderEntityList();
+                    reloadGraph();
+
+                    // 通知AI新数据已加载
+                    addAIMessage(`已加载新的知识图谱数据，包含 ${graphData.nodes.length} 个实体和 ${graphData.links.length} 个关系。有什么我可以帮您查询的吗？`);
+
+                    resetSearchState();
+                    // 更新实体表单默认值
+                    populateDefaultEntityValues();
+                    alert(`数据导入成功！共导入 ${graphData.nodes.length} 个实体和 ${graphData.links.length} 个关系`);
+                } catch (error) {
+                    console.error('文件解析失败：', error);
+                    alert(`导入失败：${error.message}`);
+                } finally {
+                    // 重置文件输入，允许重复选择同一文件
+                    fileUploadInput.value = '';
+                }
+            };
+
+            reader.onerror = function() {
+                console.error('文件读取错误:', reader.error);
+                alert(`文件读取失败: ${reader.error.message}`);
+                fileUploadInput.value = '';
+            };
+
+            reader.readAsText(file);
+        }
+
+        function saveCurrentData() {
+            try {
+                // 创建输入框用于获取文件路径
+                const filePath = prompt('请输入保存路径和文件名（包含.json扩展名）：',
+                                      currentFilePath || `knowledge_graph_${new Date().toISOString().replace(/:/g, '-').split('.')[0]}.json`);
+
+                if (!filePath) {
+                    // 用户取消输入
+                    return;
+                }
+
+                // 确保文件名以.json结尾
+                let fileName = filePath;
+                if (!fileName.endsWith('.json')) {
+                    fileName += '.json';
+                }
+
+                const cleanNodes = graphData.nodes.map(node => ({
+                    id: node.id,
+                    name: node.name,
+                    ...(node.description && node.description.trim() ? { description: node.description } : {})
+                }));
+
+                const cleanLinks = graphData.links.map(link => {
+                    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+
+                    return {
+                        source: sourceId,
+                        target: targetId,
+                        type: link.type
+                    };
+                });
+
+                const exportData = {
+                    nodes: cleanNodes,
+                    links: cleanLinks
+                };
+
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+                const link = document.createElement('a');
+                link.href = dataUri;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // 更新当前文件信息
+                currentFilePath = fileName;
+                currentFileName.textContent = fileName.split(/[\\/]/).pop();
+                currentFileInfo.style.display = 'block';
+
+                console.log('当前数据已保存到文件');
+                alert(`数据已成功保存到 ${fileName}`);
+            } catch (error) {
+                console.error('保存数据失败：', error);
+                alert(`保存失败：${error.message}`);
+            }
+        }
+
+        // ------------------------------
+        // 实体管理（新增/修改/删除）
+        // ------------------------------
+
+        // 生成默认的实体ID（短数字）
+        function generateDefaultEntityId() {
+            // 查找最大的数字ID
+            let maxId = 0;
+            graphData.nodes.forEach(node => {
+                const numId = parseInt(node.id, 10);
+                if (!isNaN(numId) && numId > maxId) {
+                    maxId = numId;
+                }
+            });
+            // 返回下一个数字ID
+            return (maxId + 1).toString();
+        }
+
+        // 生成默认的实体名称
+        function generateDefaultEntityName() {
+            const baseNames = ['实体', '概念', '对象', '元素', '节点'];
+            const randomName = baseNames[Math.floor(Math.random() * baseNames.length)];
+            return `${randomName}${graphData.nodes.length + 1}`;
+        }
+
+        // 生成默认的实体描述
+        function generateDefaultEntityDescription() {
+            const descriptions = [
+                '这是一个新实体',
+                '该实体的基本描述',
+                '相关概念的说明',
+                '新创建的实体信息',
+                '待完善的实体描述'
+            ];
+            return descriptions[Math.floor(Math.random() * descriptions.length)];
+        }
+
+        // 填充实体表单的默认值
+        function populateDefaultEntityValues() {
+            if (editingEntityId === null) { // 只有在添加模式下才填充默认值
+                entityIdInput.value = generateDefaultEntityId();
+                entityNameInput.value = generateDefaultEntityName();
+                entityDescInput.value = generateDefaultEntityDescription();
+            }
+        }
+
+        function updateEntityDropdowns() {
+            // 按添加时间排序，最近添加的在前面
+            const sortedEntities = [...graphData.nodes].reverse();
+
+            // 更新源实体下拉框
+            updateEntityDropdown(sourceEntityDropdown, sortedEntities, sourceEntityDisplay, sourceEntityInput);
+            // 更新目标实体下拉框
+            updateEntityDropdown(targetEntityDropdown, sortedEntities, targetEntityDisplay, targetEntityInput);
+            // 更新模态框源实体下拉框
+            updateEntityDropdown(modalSourceEntityDropdown, sortedEntities, modalSourceEntityDisplay, modalSourceEntity);
+            // 更新模态框目标实体下拉框
+            updateEntityDropdown(modalTargetEntityDropdown, sortedEntities, modalTargetEntityDisplay, modalTargetEntity);
+        }
+
+        function updateEntityDropdown(dropdownElement, entities, displayInput, hiddenInput) {
+            dropdownElement.innerHTML = '';
+
+            if (entities.length === 0) {
+                const emptyItem = document.createElement('div');
+                emptyItem.className = 'dropdown-item';
+                emptyItem.textContent = '暂无实体';
+                emptyItem.style.cursor = 'default';
+                emptyItem.style.opacity = '0.7';
+                dropdownElement.appendChild(emptyItem);
+                return;
+            }
+
+            entities.forEach(entity => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.textContent = `${entity.name} (ID: ${entity.id})`;
+                item.dataset.id = entity.id;
+                item.dataset.name = entity.name;
+
+                item.addEventListener('click', () => {
+                    hiddenInput.value = entity.id;
+                    displayInput.value = entity.name;
+                    dropdownElement.classList.remove('visible');
+                });
+
+                dropdownElement.appendChild(item);
+            });
+        }
+
+        function filterEntities(keyword) {
+            if (!keyword) {
+                // 如果没有搜索词，返回按添加时间排序的实体
+                return [...graphData.nodes].reverse();
+            }
+
+            const lowerKeyword = keyword.toLowerCase();
+            return graphData.nodes.filter(entity =>
+                entity.name.toLowerCase().includes(lowerKeyword) ||
+                entity.id.toLowerCase().includes(lowerKeyword) ||
+                (entity.description && entity.description.toLowerCase().includes(lowerKeyword))
+            );
+        }
+
+        function renderEntityList() {
+            if (graphData.nodes.length === 0) {
+                entitiesContainer.innerHTML = '<div class="no-data">暂无实体数据</div>';
+                return;
+            }
+
+            entitiesContainer.innerHTML = '';
+            graphData.nodes.forEach(node => {
+                const entityItem = document.createElement('div');
+                entityItem.className = 'entity-item';
+                entityItem.innerHTML = `
+                    <div class="entity-info">
+                        <strong>${node.name}</strong>
+                        <p>${node.description?.substring(0, 50) || ''}${node.description && node.description.length > 50 ? '...' : ''}</p>
+                    </div>
+                    <div class="entity-actions">
+                        <div class="action-btn edit-btn" title="编辑" data-id="${node.id}">✏️</div>
+                        <div class="action-btn delete-btn" title="删除" data-id="${node.id}">🗑️</div>
+                    </div>
+                `;
+                entityItem.querySelector('.edit-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    startEditEntity(node.id);
+                });
+                entityItem.querySelector('.delete-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteEntity(node.id);
+                });
+                entityItem.addEventListener('click', () => {
+                    showEntityDetail(node);
+                    centerNodeInView(node.id);
+                    resetSearchState();
+                    // 高亮选中的实体
+                    clearAllHighlights();
+                    nodeGroups.filter(d => d.id === node.id).classed('highlighted', true);
+                });
+                entitiesContainer.appendChild(entityItem);
+            });
+        }
+
+        function startEditEntity(id) {
+            const entity = graphData.nodes.find(n => n.id === id);
+            if (!entity) return;
+
+            editingEntityId = id;
+
+            // 填充模态框表单
+            modalEntityId.value = entity.id;
+            modalEntityName.value = entity.name;
+            modalEntityDesc.value = entity.description || '';
+
+            // 显示模态框
+            entityEditModal.classList.add('active');
+        }
+
+        function cancelEdit() {
+            editingEntityId = null;
+            editingLinkIndex = -1;
+            entityFormTitle.textContent = '添加实体';
+            entityIdInput.disabled = false;
+            clearEntityForm();
+            // 重新填充默认值
+            populateDefaultEntityValues();
+
+            addEntityBtn.style.display = 'block';
+            updateEntityBtn.style.display = 'none';
+            cancelEditBtn.style.display = 'none';
+        }
+
+        function clearEntityForm() {
+            entityIdInput.value = '';
+            entityNameInput.value = '';
+            entityDescInput.value = '';
+        }
+
+        function addEntity() {
+            const id = entityIdInput.value.trim();
+            const name = entityNameInput.value.trim();
+            const description = entityDescInput.value.trim();
+
+            if (!id || !name) {
+                alert('实体ID和名称不能为空');
+                return;
+            }
+
+            if (graphData.nodes.some(node => node.id === id)) {
+                alert('实体ID已存在');
+                // 自动生成新的ID
+                entityIdInput.value = generateDefaultEntityId();
+                return;
+            }
+
+            const newEntity = { id, name };
+            if (description) newEntity.description = description;
+            graphData.nodes.push(newEntity);
+
+            updateEntityDropdowns();
+            renderEntityList();
+            reloadGraph();
+            // 清空表单并填充新的默认值
+            clearEntityForm();
+            populateDefaultEntityValues();
+            alert('实体添加成功');
+
+            // 通知AI新实体已添加
+            addAIMessage(`已添加新实体「${name}」。需要我介绍这个实体或与其他实体建立关系吗？`);
+        }
+
+        function updateEntity() {
+            if (!editingEntityId) return;
+
+            const entity = graphData.nodes.find(n => n.id === editingEntityId);
+            if (!entity) {
+                alert('实体不存在');
+                closeEntityModal.click();
+                return;
+            }
+
+            const name = modalEntityName.value.trim();
+            const description = modalEntityDesc.value.trim();
+
+            if (!name) {
+                alert('实体名称不能为空');
+                return;
+            }
+
+            entity.name = name;
+            if (description) {
+                entity.description = description;
+            } else {
+                delete entity.description;
+            }
+
+            renderEntityList();
+            updateEntityDropdowns();
+            reloadGraph();
+            alert('实体更新成功');
+
+            // 通知AI实体已更新
+            addAIMessage(`实体「${name}」已更新。需要我做些什么吗？`);
+
+            if (selectedNode && selectedNode.id === editingEntityId) {
+                showEntityDetail(entity);
+            }
+
+            closeEntityModal.click();
+            editingEntityId = null;
+        }
+
+        function deleteEntity(id) {
+            if (!confirm('确定要删除此实体吗？关联的关系也将被删除')) return;
+
+            const entityToDelete = graphData.nodes.find(n => n.id === id);
+            if (!entityToDelete) return;
+
+            graphData.links = graphData.links.filter(link => {
+                const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                return sourceId !== id && targetId !== id;
+            });
+
+            graphData.nodes = graphData.nodes.filter(node => node.id !== id);
+
+            // 更新已使用的关系类型
+            updateUsedRelationTypes();
+            updateRelationTypeDropdown();
+
+            updateEntityDropdowns();
+            renderEntityList();
+            reloadGraph();
+
+            // 如果删除的实体是当前选中的源实体或目标实体，则清空
+            if (sourceEntityInput.value === id) {
+                sourceEntityInput.value = '';
+                sourceEntityDisplay.value = '';
+            }
+            if (targetEntityInput.value === id) {
+                targetEntityInput.value = '';
+                targetEntityDisplay.value = '';
+            }
+
+            if (selectedNode && selectedNode.id === id) {
+                selectedNode = null;
+            }
+
+            resetSearchState();
+
+            // 通知AI实体已删除
+            addAIMessage(`实体「${entityToDelete.name}」已删除，相关关系也已移除。`);
+
+            alert('实体删除成功');
+        }
+
+        // 显示实体详情
+        function showEntityDetail(entity) {
+            selectedNode = entity;
+            selectedLink = null;
+
+            const relatedLinks = graphData.links.filter(link => {
+                const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                return sourceId === entity.id || targetId === entity.id;
+            });
+
+            let relationsHtml = '';
+            relatedLinks.forEach((link, index) => {
+                const isSource = (typeof link.source === 'object' ? link.source.id : link.source) === entity.id;
+                const otherNodeId = isSource
+                    ? (typeof link.target === 'object' ? link.target.id : link.target)
+                    : (typeof link.source === 'object' ? link.source.id : link.source);
+                const otherNode = graphData.nodes.find(n => n.id === otherNodeId);
+
+                const sourceId = isSource ? entity.id : otherNodeId;
+                const targetId = isSource ? otherNodeId : entity.id;
+                const linkIndex = graphData.links.findIndex(l => {
+                    const lSourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                    const lTargetId = typeof l.target === 'object' ? l.target.id : l.target;
+                    return lSourceId === sourceId && lTargetId === targetId && l.type === link.type;
+                });
+
+                relationsHtml += `
+                    <div class="relation-item">
+                        <strong>${isSource ? '→ ' : '← '}${link.type}</strong>
+                        <div>${otherNode ? otherNode.name : '未知实体'}</div>
+                        <div class="entity-actions" style="margin-top: 5px;">
+                            <div class="action-btn edit-btn"
+                                onclick="startEditRelation(${linkIndex})">
+                                编辑
+                            </div>
+                            <div class="action-btn delete-btn"
+                                onclick="deleteRelation('${sourceId}', '${targetId}', '${link.type}')">
+                                删除
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            console.log('实体详情:', entity);
+        }
+
+        // ------------------------------
+        // 关系管理（添加/修改/删除）
+        // ------------------------------
+        function addRelation() {
+            const sourceId = sourceEntityInput.value;
+            const targetId = targetEntityInput.value;
+            const type = relationTypeInput.value.trim();
+
+            if (!sourceId || !targetId || !type) {
+                alert('请完善关系信息');
+                return;
+            }
+
+            if (sourceId === targetId) {
+                alert('源实体和目标实体不能相同');
+                return;
+            }
+
+            const relationExists = graphData.links.some(link => {
+                const linkSourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                const linkTargetId = typeof link.target === 'object' ? link.target.id : link.target;
+                return linkSourceId === sourceId && linkTargetId === targetId && link.type === type;
+            });
+
+            if (relationExists) {
+                alert('此关系已存在');
+                return;
+            }
+
+            const sourceEntity = graphData.nodes.find(n => n.id === sourceId);
+            const targetEntity = graphData.nodes.find(n => n.id === targetId);
+
+            graphData.links.push({ source: sourceId, target: targetId, type });
+
+            // 更新已使用的关系类型
+            updateUsedRelationTypes();
+            updateRelationTypeDropdown();
+
+            reloadGraph();
+            clearRelationForm();
+
+            if (selectedNode && (selectedNode.id === sourceId || selectedNode.id === targetId)) {
+                showEntityDetail(selectedNode);
+            }
+
+            resetSearchState();
+
+            // 通知AI新关系已添加
+            addAIMessage(`已添加关系：${sourceEntity?.name} ${type} ${targetEntity?.name}。需要我分析这个关系吗？`);
+
+            alert('关系添加成功');
+        }
+
+        // 开始编辑关系
+        function startEditRelation(linkIndex) {
+            if (linkIndex < 0 || linkIndex >= graphData.links.length) return;
+
+            const link = graphData.links[linkIndex];
+            editingLinkIndex = linkIndex;
+
+            // 获取源实体和目标实体的ID（处理对象引用的情况）
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+
+            // 填充模态框表单
+            modalSourceEntity.value = sourceId;
+            const sourceEntity = graphData.nodes.find(n => n.id === sourceId);
+            modalSourceEntityDisplay.value = sourceEntity ? sourceEntity.name : '';
+
+            modalTargetEntity.value = targetId;
+            const targetEntity = graphData.nodes.find(n => n.id === targetId);
+            modalTargetEntityDisplay.value = targetEntity ? targetEntity.name : '';
+
+            modalRelationType.value = link.type;
+            modalRelationTypeDisplay.value = link.type;
+
+            // 显示关系编辑模态框
+            relationEditModal.classList.add('active');
+        }
+
+        // 更新关系
+        function updateRelation() {
+            if (editingLinkIndex < 0 || editingLinkIndex >= graphData.links.length) return;
+
+            const originalLink = graphData.links[editingLinkIndex];
+            const originalSourceId = typeof originalLink.source === 'object' ? originalLink.source.id : originalLink.source;
+            const originalTargetId = typeof originalLink.target === 'object' ? originalLink.target.id : originalLink.target;
+
+            const newSourceId = modalSourceEntity.value;
+            const newTargetId = modalTargetEntity.value;
+            const newType = modalRelationType.value.trim();
+
+            if (!newSourceId || !newTargetId || !newType) {
+                alert('请完善关系信息');
+                return;
+            }
+
+            if (newSourceId === newTargetId) {
+                alert('源实体和目标实体不能相同');
+                return;
+            }
+
+            // 检查更新后的关系是否已存在（排除自身）
+            const relationExists = graphData.links.some((link, index) => {
+                if (index === editingLinkIndex) return false; // 跳过自身
+
+                const linkSourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                const linkTargetId = typeof link.target === 'object' ? link.target.id : link.target;
+                return linkSourceId === newSourceId && linkTargetId === newTargetId && link.type === newType;
+            });
+
+            if (relationExists) {
+                alert('此关系已存在');
+                return;
+            }
+
+            // 记录旧的关系类型，用于更新关系类型集合
+            const oldType = originalLink.type;
+
+            // 更新关系数据
+            graphData.links[editingLinkIndex] = {
+                source: newSourceId,
+                target: newTargetId,
+                type: newType
+            };
+
+            // 更新已使用的关系类型
+            updateUsedRelationTypes();
+            updateRelationTypeDropdown();
+
+            // 刷新界面
+            reloadGraph();
+            clearRelationForm();
+            editingLinkIndex = -1;
+
+            const sourceEntity = graphData.nodes.find(n => n.id === newSourceId);
+            const targetEntity = graphData.nodes.find(n => n.id === newTargetId);
+
+            // 通知AI关系已更新
+            addAIMessage(`关系已更新为：${sourceEntity?.name} ${newType} ${targetEntity?.name}。`);
+
+            // 关闭模态框
+            closeRelationModal.click();
+
+            alert('关系更新成功');
+        }
+
+        function clearRelationForm() {
+            sourceEntityInput.value = '';
+            sourceEntityDisplay.value = '';
+            targetEntityInput.value = '';
+            targetEntityDisplay.value = '';
+            relationTypeInput.value = '';
+            relationTypeDisplay.value = '';
+        }
+
+        function deleteRelation(sourceId, targetId, type) {
+            if (!confirm(`确定要删除关系「${type}」吗？`)) return;
+
+            const initialLinkCount = graphData.links.length;
+            const source = typeof sourceId === 'object' ? sourceId.id : sourceId;
+            const target = typeof targetId === 'object' ? targetId.id : targetId;
+
+            const sourceEntity = graphData.nodes.find(n => n.id === source);
+            const targetEntity = graphData.nodes.find(n => n.id === target);
+
+            graphData.links = graphData.links.filter(link => {
+                const linkSource = typeof link.source === 'object' ? link.source.id : link.source;
+                const linkTarget = typeof link.target === 'object' ? link.target.id : link.target;
+                return !(linkSource === source && linkTarget === target && link.type === type);
+            });
+
+            if (graphData.links.length < initialLinkCount) {
+                // 更新已使用的关系类型
+                updateUsedRelationTypes();
+                updateRelationTypeDropdown();
+
+                reloadGraph();
+
+                if (selectedNode && (selectedNode.id === source || selectedNode.id === target)) {
+                    showEntityDetail(selectedNode);
+                }
+
+                if (selectedLink &&
+                    (typeof selectedLink.source === 'object' ? selectedLink.source.id : selectedLink.source) === source &&
+                    (typeof selectedLink.target === 'object' ? selectedLink.target.id : selectedLink.target) === target &&
+                    selectedLink.type === type) {
+                    selectedLink = null;
+                }
+
+                resetSearchState();
+
+                // 通知AI关系已删除
+                addAIMessage(`关系「${sourceEntity?.name} ${type} ${targetEntity?.name}」已删除。`);
+
+                alert('关系删除成功');
+            } else {
+                alert('未找到该关系或删除失败');
+            }
+        }
+
+        // 显示关系详情
+        function showRelationDetail(link) {
+            selectedLink = link;
+            selectedNode = null;
+
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+            const sourceEntity = graphData.nodes.find(n => n.id === sourceId);
+            const targetEntity = graphData.nodes.find(n => n.id === targetId);
+
+            console.log(`关系详情: ${sourceEntity?.name} ${link.type} ${targetEntity?.name}`);
+        }
+
+        // ------------------------------
+        // 图谱可视化与交互
+        // ------------------------------
+        function initializeGraph() {
+            const container = document.getElementById('graph-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            d3.select('#graph-container').select('svg').remove();
+
+            svg = d3.select('#graph-container')
+                .append('svg')
+                .attr('width', '100%')
+                .attr('height', '100%')
+                .attr('viewBox', [0, 0, width, height])
+                .on('click', handleSvgClick); // 添加空白处点击事件
+
+            // 定义箭头标记，为每个箭头添加唯一ID
+            const defs = svg.append('defs');
+            graphData.links.forEach((link, index) => {
+                defs.append('marker')
+                    .attr('id', `arrow-${index}`)
+                    .attr('viewBox', '0 -5 10 10')
+                    .attr('refX', 45) // 箭头位置调整，适应大节点
+                    .attr('refY', 0)
+                    .attr('markerWidth', 6)
+                    .attr('markerHeight', 6)
+                    .attr('orient', 'auto')
+                    .append('path')
+                    .attr('d', 'M0,-5L10,0L0,5')
+                    .attr('class', 'arrowhead')
+                    .attr('data-link-index', index)
+                    .on('click', function(event) {
+                        event.stopPropagation();
+                        const linkIndex = parseInt(d3.select(this).attr('data-link-index'));
+                        const link = graphData.links[linkIndex];
+                        if (link) {
+                            selectedLink = link;
+                            clearAllHighlights();
+                            highlightRelationAndEntities(link);
+                            showRelationDetail(link);
+                            centerRelationInView(link);
+                            resetSearchState();
+                        }
+                    });
+            });
+
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 5])
+                .on('zoom', (event) => {
+                    transform = event.transform;
+                    g.attr('transform', transform);
+                });
+
+            svg.call(zoom);
+
+            const g = svg.append('g');
+
+            // 调整力导向参数，适应大节点
+            simulation = d3.forceSimulation(graphData.nodes)
+                .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(200)) // 增加节点间距
+                .force('charge', d3.forceManyBody().strength(-600)) // 增加排斥力
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(70)); // 增加碰撞检测半径
+
+            // 绘制连线并添加箭头，为每条线分配对应的箭头ID
+            linkElements = g.append('g')
+                .attr('class', 'links')
+                .selectAll('line')
+                .data(graphData.links)
+                .enter()
+                .append('line')
+                .attr('class', 'link')
+                .attr('stroke-width', 2)
+                .attr('data-link-index', (d, i) => i)
+                .attr('marker-end', (d, i) => `url(#arrow-${i})`) // 为每条线分配对应的箭头
+                .on('click', (event, d) => {
+                    // 点击关系边显示详情
+                    event.stopPropagation();
+                    selectedLink = d;
+                    clearAllHighlights();
+
+                    // 高亮当前关系及相关实体和箭头
+                    highlightRelationAndEntities(d);
+
+                    showRelationDetail(d);
+                    centerRelationInView(d);
+                    resetSearchState();
+                });
+
+            // 绘制连线标签
+            linkLabelElements = g.append('g')
+                .attr('class', 'link-labels')
+                .selectAll('text')
+                .data(graphData.links)
+                .enter()
+                .append('text')
+                .attr('class', 'link-label')
+                .attr('data-link-index', (d, i) => i)
+                .text(d => d.type)
+                .on('click', (event, d) => {
+                    // 点击关系标签显示详情
+                    event.stopPropagation();
+                    selectedLink = d;
+                    clearAllHighlights();
+
+                    // 高亮当前关系及相关实体和箭头
+                    highlightRelationAndEntities(d);
+
+                    showRelationDetail(d);
+                    centerRelationInView(d);
+                    resetSearchState();
+                });
+
+            // 绘制节点
+            nodeGroups = g.append('g')
+                .attr('class', 'nodes')
+                .selectAll('g')
+                .data(graphData.nodes)
+                .enter()
+                .append('g')
+                .attr('data-id', d => d.id)
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            // 大实心圆节点
+            nodeGroups.append('circle')
+                .attr('r', 25) // 大节点半径
+                .attr('fill', '#66bb6a');
+
+            // 节点内部文字（居中显示）
+            nodeGroups.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'middle')
+                .text(d => {
+                    // 长名称自动截断显示
+                    if (d.name.length > 5) {
+                        return d.name.substring(0, 5) + '...';
+                    }
+                    return d.name;
+                })
+                .attr('fill', '#ffffff'); // 白色文字，与节点形成对比
+
+            nodeGroups.on('click', (event, d) => {
+                event.stopPropagation(); // 阻止事件冒泡到SVG
+                selectedNode = d;
+                selectedLink = null;
+                clearAllHighlights();
+                d3.select(event.currentTarget).classed('highlighted', true);
+                showEntityDetail(d);
+                centerNodeInView(d.id);
+                resetSearchState();
+            });
+
+            // 存储箭头元素引用，添加数据属性标识对应的关系索引
+            arrowElements = svg.selectAll('.arrowhead');
+
+            simulation.on('tick', () => {
+                linkElements
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                linkLabelElements
+                    .attr('x', d => (d.source.x + d.target.x) / 2)
+                    .attr('y', d => (d.source.y + d.target.y) / 2);
+
+                nodeGroups.attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+
+            console.log('图谱初始化完成，节点数：', graphData.nodes.length);
+        }
+
+        // 高亮关系及相关实体和箭头
+        function highlightRelationAndEntities(link) {
+            // 找到当前关系在数组中的索引
+            const linkIndex = graphData.links.indexOf(link);
+            if (linkIndex === -1) return;
+
+            // 获取源实体和目标实体的ID
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+
+            // 高亮关系线
+            linkElements.filter((l, i) => i === linkIndex).classed('link-highlighted', true);
+
+            // 高亮箭头
+            d3.select(`#arrow-${linkIndex}`).select('path').classed('arrow-highlighted', true);
+
+            // 高亮关系标签
+            linkLabelElements.filter((l, i) => i === linkIndex).classed('link-label-highlighted', true);
+
+            // 高亮源实体和目标实体
+            nodeGroups.filter(d => d.id === sourceId || d.id === targetId)
+                .classed('relation-entity-highlighted', true);
+        }
+
+        // 处理SVG空白处点击事件
+        function handleSvgClick(event) {
+            // 只有点击空白处才触发
+            if (event.target === svg.node()) {
+                clearAllHighlights();
+                selectedNode = null;
+                selectedLink = null;
+                resetSearchState();
+            }
+        }
+
+        // 清除所有高亮效果
+        function clearAllHighlights() {
+            if (!svg) return;
+            // 清除节点高亮和淡化效果
+            if (nodeGroups) {
+                nodeGroups
+                    .classed('highlighted', false)
+                    .classed('search-highlighted', false)
+                    .classed('relation-entity-highlighted', false)
+                    .classed('faded', false);
+            }
+            // 清除连线高亮和淡化效果
+            if (linkElements) {
+                linkElements
+                    .classed('search-highlighted-link', false)
+                    .classed('link-highlighted', false)
+                    .classed('faded', false);
+            }
+            // 清除连线标签高亮和淡化效果
+            if (linkLabelElements) {
+                linkLabelElements
+                    .classed('search-highlighted-link-label', false)
+                    .classed('link-label-highlighted', false)
+                    .classed('faded', false);
+            }
+            // 清除箭头高亮和淡化效果
+            if (arrowElements) {
+                arrowElements
+                    .classed('search-highlighted-arrow', false)
+                    .classed('arrow-highlighted', false)
+                    .classed('faded', false);
+            }
+        }
+
+        // 节点拖拽交互函数
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        function reloadGraph() {
+            console.log('重新加载图谱，节点数：', graphData.nodes.length);
+            graphData.links.forEach(link => {
+                if (typeof link.source !== 'string') link.source = link.source.id;
+                if (typeof link.target !== 'string') link.target = link.target.id;
+            });
+            initializeGraph();
+        }
+
+        // 视图控制功能
+        function zoomIn() {
+            if (!svg || !zoom) return;
+            svg.transition().duration(300).call(
+                zoom.scaleBy, 1.3
+            );
+        }
+
+        function zoomOut() {
+            if (!svg || !zoom) return;
+            svg.transition().duration(300).call(
+                zoom.scaleBy, 0.77
+            );
+        }
+
+        function fitView() {
+            if (!svg || !zoom || graphData.nodes.length === 0) return;
+
+            const nodes = graphData.nodes;
+            const minX = Math.min(...nodes.map(d => d.x));
+            const maxX = Math.max(...nodes.map(d => d.x));
+            const minY = Math.min(...nodes.map(d => d.y));
+            const maxY = Math.max(...nodes.map(d => d.y));
+
+            const width = maxX - minX;
+            const height = maxY - minY;
+
+            const container = document.getElementById('graph-container');
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+
+            const scaleX = containerWidth / (width * 1.1);
+            const scaleY = containerHeight / (height * 1.1);
+            const scale = Math.min(scaleX, scaleY, 1);
+
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+
+            svg.transition().duration(700).call(
+                zoom.transform,
+                d3.zoomIdentity
+                    .translate(containerWidth / 2, containerHeight / 2)
+                    .scale(scale)
+                    .translate(-centerX, -centerY)
+            );
+        }
+
+        function resetLayout() {
+            if (!simulation) return;
+
+            simulation.alpha(0.3).restart();
+
+            if (svg && zoom) {
+                svg.transition().duration(300).call(
+                    zoom.transform,
+                    transform
+                );
+            }
+        }
+
+        function centerNodeInView(nodeId) {
+            if (!svg || !zoom) return;
+
+            const node = graphData.nodes.find(n => n.id === nodeId);
+            if (!node) return;
+
+            const container = document.getElementById('graph-container');
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+
+            // 减小缩放比例，使居中放大效果更小
+            let scale = 1.0;
+            if (graphData.nodes.length > 10) {
+                scale = 1.3;
+            } else if (graphData.nodes.length <= 3) {
+                scale = 0.8;
+            }
+
+            scale = Math.min(scale, 3); // 限制最大缩放比例
+
+            svg.transition()
+                .duration(800)
+                .ease(d3.easeCubic)
+                .call(zoom.transform,
+                    d3.zoomIdentity
+                        .translate(containerWidth / 2, containerHeight / 2)
+                        .scale(scale)
+                        .translate(-node.x, -node.y)
+                );
+        }
+
+        // 为搜索到的实体添加黄色高亮，并淡化其他实体和关系
+        function highlightSearchEntity(nodeId) {
+            clearAllHighlights();
+
+            // 高亮匹配的实体
+            nodeGroups.filter(d => d.id === nodeId)
+                .classed('search-highlighted', true);
+
+            // 淡化所有其他实体
+            nodeGroups.filter(d => d.id !== nodeId)
+                .classed('faded', true);
+
+            // 淡化所有关系
+            if (linkElements) {
+                linkElements.classed('faded', true);
+            }
+            if (linkLabelElements) {
+                linkLabelElements.classed('faded', true);
+            }
+            if (arrowElements) {
+                arrowElements.classed('faded', true);
+            }
+        }
+
+        // 为搜索到的关系添加黄色高亮，并淡化其他实体和关系
+        function highlightSearchRelation(link) {
+            clearAllHighlights();
+
+            // 找到当前关系在数组中的索引
+            const linkIndex = graphData.links.findIndex(l => {
+                const lSourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                const lTargetId = typeof l.target === 'object' ? l.target.id : l.target;
+                const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                return lSourceId === sourceId && lTargetId === targetId && l.type === link.type;
+            });
+
+            if (linkIndex === -1) return; // 未找到关系，退出
+
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+            const relationType = link.type;
+
+            // 高亮相关节点
+            nodeGroups.filter(d => d.id === sourceId || d.id === targetId)
+                .classed('search-highlighted', true);
+
+            // 淡化其他节点
+            nodeGroups.filter(d => d.id !== sourceId && d.id !== targetId)
+                .classed('faded', true);
+
+            // 高亮匹配的关系连线
+            if (linkElements) {
+                linkElements.filter(l => {
+                    const lSourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                    const lTargetId = typeof l.target === 'object' ? l.target.id : l.target;
+                    return lSourceId === sourceId && lTargetId === targetId && l.type === relationType;
+                }).classed('search-highlighted-link', true)
+                  .classed('faded', false);
+
+                // 淡化其他关系
+                linkElements.filter(l => {
+                    const lSourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                    const lTargetId = typeof l.target === 'object' ? l.target.id : l.target;
+                    return !(lSourceId === sourceId && lTargetId === targetId && l.type === relationType);
+                }).classed('faded', true);
+            }
+
+            // 高亮匹配的关系标签
+            if (linkLabelElements) {
+                linkLabelElements.filter(l => {
+                    const lSourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                    const lTargetId = typeof l.target === 'object' ? l.target.id : l.target;
+                    return lSourceId === sourceId && lTargetId === targetId && l.type === relationType;
+                }).classed('search-highlighted-link-label', true)
+                  .classed('faded', false);
+
+                // 淡化其他关系标签
+                linkLabelElements.filter(l => {
+                    const lSourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                    const lTargetId = typeof l.target === 'object' ? l.target.id : l.target;
+                    return !(lSourceId === sourceId && lTargetId === targetId && l.type === relationType);
+                }).classed('faded', true);
+            }
+
+            // 高亮匹配关系的箭头
+            if (arrowElements) {
+                // 找到当前关系对应的箭头并高亮
+                arrowElements.filter(`[data-link-index="${linkIndex}"]`)
+                    .classed('search-highlighted-arrow', true)
+                    .classed('faded', false);
+
+                // 淡化其他箭头
+                arrowElements.filter(`[data-link-index!="${linkIndex}"]`)
+                    .classed('faded', true);
+            }
+        }
+
+        function centerRelationInView(link) {
+            if (!svg || !zoom || !link) return;
+
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+
+            const sourceNode = graphData.nodes.find(n => n.id === sourceId);
+            const targetNode = graphData.nodes.find(n => n.id === targetId);
+            if (!sourceNode || !targetNode) return;
+
+            // 计算关系中点
+            const midX = (sourceNode.x + targetNode.x) / 2;
+            const midY = (sourceNode.y + targetNode.y) / 2;
+
+            // 计算两点之间的距离，用于动态调整缩放级别
+            const distance = Math.sqrt(
+                Math.pow(sourceNode.x - targetNode.x, 2) +
+                Math.pow(sourceNode.y - targetNode.y, 2)
+            );
+
+            const container = document.getElementById('graph-container');
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+
+            // 减小缩放比例，使居中放大效果更小
+            let scale = Math.min(containerWidth / (distance * 2.0), 2);
+            scale = Math.max(scale, 0.5); // 确保缩放不会太小
+
+            svg.transition()
+                .duration(800)
+                .ease(d3.easeCubic)
+                .call(zoom.transform,
+                    d3.zoomIdentity
+                        .translate(containerWidth / 2, containerHeight / 2)
+                        .scale(scale)
+                        .translate(-midX, -midY)
+                );
+        }
+
+        // 重置搜索状态
+        function resetSearchState() {
+            searchResults = [];
+            currentResultIndex = -1;
+            lastSearchKeyword = '';
+            lastSearchType = searchTypeSelect.value;
+            searchResultsInfo.textContent = '';
+        }
+
+        // ------------------------------
+        // 搜索与轮询显示功能 - 按类型搜索
+        // ------------------------------
+        function searchAndLocate() {
+            const keyword = searchInput.value.trim().toLowerCase();
+            const searchType = searchTypeSelect.value;
+
+            if (!keyword) {
+                resetSearchState();
+                return;
+            }
+
+            const isNewSearch = keyword !== lastSearchKeyword || searchType !== lastSearchType;
+
+            if (isNewSearch) {
+                lastSearchKeyword = keyword;
+                lastSearchType = searchType;
+                searchResults = [];
+
+                // 根据选择的搜索类型进行搜索
+                switch(searchType) {
+                    case 'entityId':
+                        // 按实体ID搜索（精确匹配）
+                        const idMatch = graphData.nodes.find(node => node.id === keyword);
+                        if (idMatch) {
+                            searchResults.push({
+                                type: 'entity',
+                                data: idMatch
+                            });
+                        }
+                        break;
+
+                    case 'entityName':
+                        // 按实体名称搜索（模糊匹配）
+                        graphData.nodes.forEach(node => {
+                            if (node.name.toLowerCase().includes(keyword)) {
+                                searchResults.push({
+                                    type: 'entity',
+                                    data: node
+                                });
+                            }
+                        });
+                        break;
+
+                    case 'entityDesc':
+                        // 按实体描述搜索（模糊匹配）
+                        graphData.nodes.forEach(node => {
+                            if (node.description && node.description.toLowerCase().includes(keyword)) {
+                                searchResults.push({
+                                    type: 'entity',
+                                    data: node
+                                });
+                            }
+                        });
+                        break;
+
+                    case 'relation':
+                        // 按关系类型搜索（模糊匹配）
+                        graphData.links.forEach(link => {
+                            if (link.type.toLowerCase().includes(keyword)) {
+                                searchResults.push({
+                                    type: 'relation',
+                                    data: link
+                                });
+                            }
+                        });
+                        break;
+                }
+
+                currentResultIndex = 0;
+            } else {
+                if (searchResults.length > 0) {
+                    currentResultIndex = (currentResultIndex + 1) % searchResults.length;
+                }
+            }
+
+            if (searchResults.length === 0) {
+                const searchTypeName = document.querySelector(`#search-type option[value="${searchType}"]`).text;
+                searchResultsInfo.textContent = `未找到匹配"${searchTypeName}"的结果`;
+                clearAllHighlights();
+                return;
+            }
+
+            const searchTypeName = document.querySelector(`#search-type option[value="${searchType}"]`).text;
+            searchResultsInfo.textContent = `找到 ${searchResults.length} 个匹配"${searchTypeName}"的结果，显示第 ${currentResultIndex + 1} 个`;
+
+            const currentResult = searchResults[currentResultIndex];
+            if (currentResult.type === 'entity') {
+                const entity = currentResult.data;
+                showEntityDetail(entity);
+                centerNodeInView(entity.id);
+                highlightSearchEntity(entity.id);
+            } else if (currentResult.type === 'relation') {
+                const link = currentResult.data;
+                showRelationDetail(link);
+                centerRelationInView(link);
+                highlightSearchRelation(link);
+            }
+        }
+
+        // ------------------------------
+        // AI问答功能实现
+        // ------------------------------
+        function setupAIEventListeners() {
+            // 发送AI消息
+            sendAiBtn.addEventListener('click', sendAIMessage);
+
+            // 按Enter键发送消息
+            aiInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendAIMessage();
+                }
+            });
+        }
+
+        // 发送用户消息并获取AI回答
+        function sendAIMessage() {
+            const messageText = aiInput.value.trim();
+            if (!messageText || isAIGenerating) return;
+
+            // 添加用户消息到聊天窗口
+            addUserMessage(messageText);
+
+            // 清空输入框
+            aiInput.value = '';
+
+            // 显示"正在输入"状态
+            showTypingIndicator();
+
+            // 生成AI回答
+            generateAIResponse(messageText);
+        }
+
+        // 添加用户消息到聊天窗口
+        function addUserMessage(text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user-message';
+
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            messageDiv.innerHTML = `
+                <div class="message-bubble">${text}</div>
+                <div class="message-time">${timeString}</div>
+            `;
+
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // 添加AI消息到聊天窗口
+        function addAIMessage(text) {
+            // 移除"正在输入"状态
+            removeTypingIndicator();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ai-message';
+
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            // 处理消息中的实体引用，添加链接
+            const processedText = processEntityReferences(text);
+
+            messageDiv.innerHTML = `
+                <div class="message-bubble">${processedText}</div>
+                <div class="message-time">${timeString}</div>
+            `;
+
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // 绑定实体引用点击事件
+            bindEntityReferenceClicks(messageDiv);
+        }
+
+        // 处理消息中的实体引用，添加链接
+        function processEntityReferences(text) {
+            let processedText = text;
+
+            // 查找消息中提到的实体并添加链接
+            graphData.nodes.forEach(entity => {
+                if (processedText.includes(entity.name)) {
+                    // 使用正则表达式替换，避免重复替换
+                    const regex = new RegExp(`\\b${entity.name}\\b`, 'g');
+                    processedText = processedText.replace(regex,
+                        `<span class="entity-reference" data-entity-id="${entity.id}">${entity.name}</span>`);
+                }
+            });
+
+            return processedText;
+        }
+
+        // 绑定实体引用点击事件
+        function bindEntityReferenceClicks(messageDiv) {
+            messageDiv.querySelectorAll('.entity-reference').forEach(ref => {
+                ref.addEventListener('click', () => {
+                    const entityId = ref.getAttribute('data-entity-id');
+                    const entity = graphData.nodes.find(n => n.id === entityId);
+                    if (entity) {
+                        // 高亮并居中显示该实体
+                        showEntityDetail(entity);
+                        centerNodeInView(entity.id);
+                        clearAllHighlights();
+                        nodeGroups.filter(d => d.id === entity.id).classed('highlighted', true);
+                    }
+                });
+            });
+        }
+
+        // 显示"正在输入"状态
+        function showTypingIndicator() {
+            if (isAIGenerating) return;
+
+            isAIGenerating = true;
+
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai-message';
+            typingDiv.id = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="message-bubble">
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+
+            chatContainer.appendChild(typingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // 移除"正在输入"状态
+        function removeTypingIndicator() {
+            const typingDiv = document.getElementById('typing-indicator');
+            if (typingDiv) {
+                typingDiv.remove();
+            }
+            isAIGenerating = false;
+        }
+
+        // 生成AI回答（模拟）
+        function generateAIResponse(query) {
+            // 简单的问题分类和回答生成
+            setTimeout(() => {
+                let response = "";
+                const lowerQuery = query.toLowerCase();
+
+                // 检查是否询问实体相关信息
+                const entityMatches = graphData.nodes.filter(node =>
+                    lowerQuery.includes(node.name.toLowerCase())
+                );
+
+                // 检查是否询问关系相关信息
+                const relationMatches = graphData.links.filter(link =>
+                    lowerQuery.includes(link.type.toLowerCase())
+                );
+
+                if (entityMatches.length > 0) {
+                    // 实体相关问题
+                    const entity = entityMatches[0];
+                    response = `关于实体「${entity.name}」的信息：<br><br>`;
+                    response += `描述：${entity.description || '无详细描述'}<br><br>`;
+
+                    // 查找与该实体相关的关系
+                    const relatedLinks = graphData.links.filter(link => {
+                        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                        return sourceId === entity.id || targetId === entity.id;
+                    });
+
+                    if (relatedLinks.length > 0) {
+                        response += `相关关系：<br>`;
+                        relatedLinks.forEach(link => {
+                            const isSource = (typeof link.source === 'object' ? link.source.id : link.source) === entity.id;
+                            const otherNodeId = isSource
+                                ? (typeof link.target === 'object' ? link.target.id : link.target)
+                                : (typeof link.source === 'object' ? link.source.id : link.source);
+                            const otherNode = graphData.nodes.find(n => n.id === otherNodeId);
+
+                            response += `- ${isSource ? '包含' : '被包含于'}「${link.type}」关系：${otherNode?.name || '未知实体'}<br>`;
+                        });
+                    } else {
+                        response += `该实体目前没有相关关系。`;
+                    }
+                }
+                else if (relationMatches.length > 0) {
+                    // 关系相关问题
+                    response = `包含「${relationMatches[0].type}」关系的实体对：<br><br>`;
+
+                    relationMatches.forEach((link, index) => {
+                        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                        const sourceEntity = graphData.nodes.find(n => n.id === sourceId);
+                        const targetEntity = graphData.nodes.find(n => n.id === targetId);
+
+                        response += `${index + 1}. ${sourceEntity?.name || '未知实体'} ${link.type} ${targetEntity?.name || '未知实体'}<br>`;
+                    });
+                }
+                else if (lowerQuery.includes('总共有') || lowerQuery.includes('多少个') || lowerQuery.includes('数量')) {
+                    // 询问数量
+                    response = `当前知识图谱中共有 ${graphData.nodes.length} 个实体和 ${graphData.links.length} 个关系。`;
+                }
+                else if (lowerQuery.includes('帮助') || lowerQuery.includes('使用') || lowerQuery.includes('怎么')) {
+                    // 帮助信息
+                    response = `我可以帮助您查询知识图谱中的信息：<br><br>` +
+                               `- 询问特定实体的信息，例如"什么是人工智能？"<br>` +
+                               `- 查询实体间的关系，例如"人工智能包含哪些技术？"<br>` +
+                               `- 了解图谱中的实体和关系数量，例如"总共有多少实体？"<br>` +
+                               `- 点击我回答中的实体名称可以在图谱中高亮显示该实体。`;
+                }
+                else {
+                    // 通用回答
+                    response = `我理解您的问题是："${query}"<br><br>` +
+                               `但我在当前知识图谱中没有找到直接相关的信息。您可以尝试询问以下内容：<br>` +
+                               `- 特定实体的信息（如"机器学习是什么？"）<br>` +
+                               `- 实体间的关系（如"深度学习和神经网络有什么关系？"）`;
+                }
+
+                // 添加AI回答
+                addAIMessage(response);
+            }, 1500 + Math.random() * 1000); // 随机延迟1.5-2.5秒，模拟思考过程
+        }
+
+        // ------------------------------
+        // 事件监听绑定
+        // ------------------------------
+        function setupEventListeners() {
+            setupFileEventListeners();
+            setupAIEventListeners();
+
+            addEntityBtn.addEventListener('click', addEntity);
+            updateEntityBtn.addEventListener('click', updateEntity);
+            cancelEditBtn.addEventListener('click', cancelEdit);
+            clearEntityFormBtn.addEventListener('click', () => {
+                clearEntityForm();
+                // 重新填充默认值
+                populateDefaultEntityValues();
+            });
+
+            addRelationBtn.addEventListener('click', addRelation);
+            updateRelationBtn.addEventListener('click', updateRelation);
+            clearRelationFormBtn.addEventListener('click', clearRelationForm);
+
+            searchBtn.addEventListener('click', searchAndLocate);
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') searchAndLocate();
+            });
+
+            zoomInBtn.addEventListener('click', zoomIn);
+            zoomOutBtn.addEventListener('click', zoomOut);
+            fitViewBtn.addEventListener('click', fitView);
+            resetViewBtn.addEventListener('click', resetLayout);
+
+            // 源实体选择框事件
+            sourceEntityDisplay.addEventListener('focus', () => {
+                sourceEntityDropdown.classList.add('visible');
+            });
+
+            sourceEntityDisplay.addEventListener('input', () => {
+                const filtered = filterEntities(sourceEntityDisplay.value);
+                updateEntityDropdown(sourceEntityDropdown, filtered, sourceEntityDisplay, sourceEntityInput);
+                sourceEntityDropdown.classList.add('visible');
+            });
+
+            // 目标实体选择框事件
+            targetEntityDisplay.addEventListener('focus', () => {
+                targetEntityDropdown.classList.add('visible');
+            });
+
+            targetEntityDisplay.addEventListener('input', () => {
+                const filtered = filterEntities(targetEntityDisplay.value);
+                updateEntityDropdown(targetEntityDropdown, filtered, targetEntityDisplay, targetEntityInput);
+                targetEntityDropdown.classList.add('visible');
+            });
+
+            // 模态框源实体选择框事件
+            modalSourceEntityDisplay.addEventListener('focus', () => {
+                modalSourceEntityDropdown.classList.add('visible');
+            });
+
+            modalSourceEntityDisplay.addEventListener('input', () => {
+                const filtered = filterEntities(modalSourceEntityDisplay.value);
+                updateEntityDropdown(modalSourceEntityDropdown, filtered, modalSourceEntityDisplay, modalSourceEntity);
+                modalSourceEntityDropdown.classList.add('visible');
+            });
+
+            // 模态框目标实体选择框事件
+            modalTargetEntityDisplay.addEventListener('focus', () => modalTargetEntityDropdown.classList.add('visible');
+        });
+
+        modalTargetEntityDisplay.addEventListener('input', () => {
+            const filtered = filterEntities(modalTargetEntityDisplay.value);
+            updateEntityDropdown(modalTargetEntityDropdown, filtered, modalTargetEntityDisplay, modalTargetEntity);
+            modalTargetEntityDropdown.classList.add('visible');
+        });
+
+        // 关系类型选择框事件
+        relationTypeDisplay.addEventListener('focus', () => {
+            relationTypeDropdown.classList.add('visible');
+        });
+
+        relationTypeDisplay.addEventListener('input', () => {
+            const filtered = filterRelationTypes(relationTypeDisplay.value);
+            // 更新关系类型下拉框
+            relationTypeDropdown.innerHTML = '';
+            if (filtered.length === 0) {
+                const emptyItem = document.createElement('div');
+                emptyItem.className = 'dropdown-item';
+                emptyItem.textContent = '无匹配的关系类型';
+                emptyItem.style.cursor = 'default';
+                emptyItem.style.opacity = '0.7';
+                relationTypeDropdown.appendChild(emptyItem);
+            } else {
+                filtered.forEach(type => {
+                    const item = document.createElement('div');
+                    item.className = 'dropdown-item';
+                    item.textContent = type;
+                    item.dataset.type = type;
+
+                    item.addEventListener('click', () => {
+                        relationTypeInput.value = type;
+                        relationTypeDisplay.value = type;
+                        relationTypeDropdown.classList.remove('visible');
+                    });
+
+                    relationTypeDropdown.appendChild(item);
+                });
+            }
+            relationTypeDropdown.classList.add('visible');
+        });
+
+        // 模态框关系类型选择框事件
+        modalRelationTypeDisplay.addEventListener('focus', () => {
+            modalRelationTypeDropdown.classList.add('visible');
+        });
+
+        modalRelationTypeDisplay.addEventListener('input', () => {
+            const filtered = filterRelationTypes(modalRelationTypeDisplay.value);
+            // 更新关系类型下拉框
+            modalRelationTypeDropdown.innerHTML = '';
+            if (filtered.length === 0) {
+                const emptyItem = document.createElement('div');
+                emptyItem.className = 'dropdown-item';
+                emptyItem.textContent = '无匹配的关系类型';
+                emptyItem.style.cursor = 'default';
+                emptyItem.style.opacity = '0.7';
+                modalRelationTypeDropdown.appendChild(emptyItem);
+            } else {
+                filtered.forEach(type => {
+                    const item = document.createElement('div');
+                    item.className = 'dropdown-item';
+                    item.textContent = type;
+                    item.dataset.type = type;
+
+                    item.addEventListener('click', () => {
+                        modalRelationType.value = type;
+                        modalRelationTypeDisplay.value = type;
+                        modalRelationTypeDropdown.classList.remove('visible');
+                    });
+
+                    modalRelationTypeDropdown.appendChild(item);
+                });
+            }
+            modalRelationTypeDropdown.classList.add('visible');
+        });
+
+        // 点击其他区域关闭下拉框
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('.entity-select-container') &&
+                !event.target.closest('.relation-type-select-container')) {
+                sourceEntityDropdown.classList.remove('visible');
+                targetEntityDropdown.classList.remove('visible');
+                modalSourceEntityDropdown.classList.remove('visible');
+                modalTargetEntityDropdown.classList.remove('visible');
+                relationTypeDropdown.classList.remove('visible');
+                modalRelationTypeDropdown.classList.remove('visible');
+            }
+        });
+
+        // 实体编辑弹窗事件
+        closeEntityModal.addEventListener('click', () => {
+            entityEditModal.classList.remove('active');
+            editingEntityId = null;
+        });
+
+        cancelEntityEdit.addEventListener('click', () => {
+            entityEditModal.classList.remove('active');
+            editingEntityId = null;
+        });
+
+        confirmEntityEdit.addEventListener('click', updateEntity);
+
+        // 关系编辑弹窗事件
+        closeRelationModal.addEventListener('click', () => {
+            relationEditModal.classList.remove('active');
+            editingLinkIndex = -1;
+        });
+
+        cancelRelationEdit.addEventListener('click', () => {
+            relationEditModal.classList.remove('active');
+            editingLinkIndex = -1;
+        });
+
+        confirmRelationEdit.addEventListener('click', updateRelation);
+
+        // 窗口大小变化时重绘图谱
+        window.addEventListener('resize', () => {
+            if (graphData.nodes.length > 0) {
+                reloadGraph();
+                fitView();
+            }
+        });
+    }
+
+    // 全局函数，用于关系编辑操作
+    window.startEditRelation = startEditRelation;
+    window.deleteRelation = deleteRelation;
+    window.startEditEntity = startEditEntity;
+    window.deleteEntity = deleteEntity;
+    window.showEntityDetail = showEntityDetail;
+</script>
+</body>
+</html>
