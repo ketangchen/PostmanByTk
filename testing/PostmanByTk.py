@@ -3066,11 +3066,22 @@ class SimplePostmanApp(tk.Tk):
         )
         find_frame.pack(fill="x", pady=2)
 
+        dict_ch={
+            '星号':'*',
+            '井号':'#',
+            '减号':'-',
+            '逗号':',',
+            '分号':'、',
+            '空号':'',
+            '换行符':'\n',
+            '制表符':'\t'
+        }
+
         sub_win.find_btn_combobox = ttk.Combobox(
             find_frame,
             font=self.set_font_size('Song', 10, 'normal'),
             background='white',
-            values=['*', ',','、','\n',' ','\t'],
+            values=['*','#', '-', ',','、','\n',' ','\t'],
             state='NORMAL'
         )
         sub_win.find_btn_combobox.pack(side="left", padx=2)  # ,  expand=True, fill="both")
@@ -3127,6 +3138,48 @@ class SimplePostmanApp(tk.Tk):
             )
         )
         sub_win.replace_btn.pack(side="left", padx=2,  expand=True, fill="both")
+
+        # 清除回车符控件（嵌套Frame实现水平排列）
+        clear_enter_frame = tk.Frame(
+            right_button_frame,
+            background='lightblue',
+            highlightbackground='lightblue'
+        )
+        clear_enter_frame.pack(fill="x", pady=2)
+
+        sub_win.clear_enter_btn = tk.Button(
+            clear_enter_frame,
+            font=self.set_font_size('Song', 12, 'normal'),
+            background='white',
+            highlightbackground='lightblue',
+            foreground='black',
+            text="ClearEnter",
+            command=lambda: self.clear_enter_in_a_text(
+                self.left_img_output_text
+            )
+        )
+        sub_win.clear_enter_btn.pack(side="left", padx=2, expand=True, fill="both")
+
+        # 清除大模型回答字符控件（嵌套Frame实现水平排列）
+        clear_llm_ch_frame = tk.Frame(
+            right_button_frame,
+            background='lightblue',
+            highlightbackground='lightblue'
+        )
+        clear_llm_ch_frame.pack(fill="x", pady=2)
+
+        sub_win.clear_enter_btn = tk.Button(
+            clear_llm_ch_frame,
+            font=self.set_font_size('Song', 12, 'normal'),
+            background='white',
+            highlightbackground='lightblue',
+            foreground='black',
+            text="ClearLLMCh",
+            command=lambda: self.clear_llm_ch_in_a_text(
+                self.left_img_output_text
+            )
+        )
+        sub_win.clear_enter_btn.pack(side="left", padx=2, expand=True, fill="both")
 
     def search_keyword_in_text(self, keyword, which_text):
         # 检查输入有效性
@@ -3227,6 +3280,30 @@ class SimplePostmanApp(tk.Tk):
             which_text.insert('end',new_str.join(splitList))
         else:
             pass
+
+    def clear_enter_in_a_text(self,which_text):
+        text = which_text.get("1.0", tk.END)
+        self.clearContent(which_text)
+        textList=[i for i in text.split('\n') if i!='']
+        #print(f'textList is:{textList}')
+        for index,t in enumerate(textList):
+            print(f'第{index+1}个元素为：{t}')
+        which_text.insert("end",'\n'.join(textList))
+        pass
+
+    def clear_llm_ch_in_a_text(self,which_text):
+        llm_ch_list=['*','-','#']
+        text = which_text.get("1.0", tk.END)
+        for i in llm_ch_list:
+            if i in text:
+                text=text.replace(i,'')
+        self.clearContent(which_text)
+        textList=[i for i in text.split('\n') if i!='']
+        #print(f'textList is:{textList}')
+        for index,t in enumerate(textList):
+            print(f'第{index+1}个元素为：{t}')
+        which_text.insert("end",'\n'.join(textList))
+        pass
 
     def create_business_tools_sub_widgets1(self, sub_win):
         # 主容器分为左右两部分：左侧文本区域 + 右侧按钮区域
@@ -6564,8 +6641,8 @@ pip index versions paddlepaddle
 pip index versions paddleocr
 
 conda创建虚拟环境
-conda create -n my_env1 python=3.9
-conda activate my_env1
+conda create -n my_env1 python=3.9 # conda create -n my_env_fuzz python=3.9
+conda activate my_env1 # conda activate my_env_fuzz
 conda deactivate
 conda env list
 file $(which python3)
