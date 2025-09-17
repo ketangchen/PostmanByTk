@@ -2934,8 +2934,8 @@ class SimplePostmanApp(tk.Tk):
             text="GetHtmlData",
             command=lambda: self.thread_it(
                 self.getHtmlData(
-                    sub_win.left_img_output_text,
-                    sub_win.left_img_output_text.get("1.0", "end-1c")
+                    self.left_img_output_text,
+                    self.left_img_output_text.get("1.0", "end-1c")
                 )
             )
         )
@@ -3081,7 +3081,22 @@ class SimplePostmanApp(tk.Tk):
             find_frame,
             font=self.set_font_size('Song', 10, 'normal'),
             background='white',
-            values=['*','#', '-', ',','、','\n',' ','\t'],
+            values=[
+                '',
+                ',',
+                '*',
+                '#',
+                '-',
+                '\\n',
+                '\\n,',
+                'Guangba&nbsp;',
+                'Research Papers',
+                'Pre-print',
+                'Media Attached',
+                '、',
+                ' ',
+                '\\t'
+            ],
             state='NORMAL'
         )
         sub_win.find_btn_combobox.pack(side="left", padx=2)  # ,  expand=True, fill="both")
@@ -3117,7 +3132,22 @@ class SimplePostmanApp(tk.Tk):
             replace_frame,
             font=self.set_font_size('Song', 10, 'normal'),
             background='white',
-            values=['*', ',','、','\n',' ','\t'],
+            values=[
+                '',
+                ',',
+                '*',
+                '#',
+                '-',
+                '\\n',
+                '\\n,',
+                'Guangba&nbsp;',
+                'Research Papers',
+                'Pre-print',
+                'Media Attached',
+                '、',
+                ' ',
+                '\\t'
+            ],
             state='NORMAL'
         )
         sub_win.replace_btn_combobox.pack(side="left", padx=2)  # ,  expand=True, fill="both")
@@ -3180,6 +3210,27 @@ class SimplePostmanApp(tk.Tk):
             )
         )
         sub_win.clear_enter_btn.pack(side="left", padx=2, expand=True, fill="both")
+
+        # 生成存储论文作者控件（嵌套Frame实现水平排列）
+        create_articleAuthor_frame = tk.Frame(
+            right_button_frame,
+            background='lightblue',
+            highlightbackground='lightblue'
+        )
+        create_articleAuthor_frame.pack(fill="x", pady=2)
+
+        sub_win.create_articleAuthor_btn = tk.Button(
+            create_articleAuthor_frame,
+            font=self.set_font_size('Song', 12, 'normal'),
+            background='white',
+            highlightbackground='lightblue',
+            foreground='black',
+            text="CreateArticleAuthor",
+            command=lambda: self.create_articleAuthor_in_a_text(
+                self.left_img_output_text
+            )
+        )
+        sub_win.create_articleAuthor_btn.pack(side="left", padx=2, expand=True, fill="both")
 
     def search_keyword_in_text(self, keyword, which_text):
         # 检查输入有效性
@@ -3268,27 +3319,113 @@ class SimplePostmanApp(tk.Tk):
             # 配置普通高亮样式
         widget.tag_config("highlight", foreground="yellow",  background="blue",font=("Song", 12, "normal"))
 
-    def find_or_replace(self,which_text,find_combo,replace_combo,pattern):
-        if pattern=='find':
-            self.search_keyword_in_text(find_combo.get(), which_text)
-        elif pattern=='replace':
-            textContent=which_text.get('1.0','end')
-            old_str=find_combo.get()
-            new_str=replace_combo.get()
-            splitList=textContent.split(old_str)
-            self.clearContent(which_text)
-            which_text.insert('end',new_str.join(splitList))
+    def _detect_and_normalize_encoding(self, text):
+        """
+        检测文本编码并统一转换为UTF-8
+        支持GBK、UTF-8和混合编码的处理
+        """
+        if isinstance(text, bytes):
+            # 如果是字节类型，尝试检测编码
+            try:
+                # 首先尝试UTF-8解码
+                return text.decode('utf-8')
+            except UnicodeDecodeError:
+                try:
+                    # 尝试GBK解码
+                    return text.decode('gbk')
+                except UnicodeDecodeError:
+                    try:
+                        # 尝试GB2312解码
+                        return text.decode('gb2312')
+                    except UnicodeDecodeError:
+                        # 使用错误处理策略，忽略无法解码的字符
+                        return text.decode('utf-8', errors='ignore')
         else:
-            pass
+            # 如果是字符串类型，直接返回
+            return str(text)
+
+    def _normalize_special_chars(self, text):
+        """
+        处理特殊字符转义
+        """
+        special_ch_dict = {'\\n': '\n', '\\t': '\t', '\\r': '\r'}
+        result = text
+        for escape_char, real_char in special_ch_dict.items():
+            result = result.replace(escape_char, real_char)
+        return result
+
+    def find_or_replace(self, which_text, find_combo, replace_combo, pattern):
+        """
+        优化的查找和替换函数，支持多种编码处理
+        """
+        try:
+            if pattern == 'find':
+                find_str = find_combo.get()
+                # 处理特殊字符转义
+                find_str = self._normalize_special_chars(find_str)
+                # 确保编码一致性
+                find_str = self._detect_and_normalize_encoding(find_str)
+                print(f"查找字符串: {find_str}")
+                self.search_keyword_in_text(find_str, which_text)
+                
+            elif pattern == 'replace':
+                # 获取文本内容并处理编码
+                textContent = which_text.get('1.0', 'end')
+                textContent = self._detect_and_normalize_encoding(textContent)
+                
+                # 处理查找字符串
+                old_str = find_combo.get()
+                old_str = self._normalize_special_chars(old_str)
+                old_str = self._detect_and_normalize_encoding(old_str)
+                print(f"查找字符串: {old_str}")
+                
+                # 处理替换字符串
+                new_str = replace_combo.get()
+                new_str = self._normalize_special_chars(new_str)
+                new_str = self._detect_and_normalize_encoding(new_str)
+                print(f"替换字符串: {new_str}")
+                
+                # 执行替换操作
+                if old_str in textContent:
+                    # 使用更安全的替换方法
+                    result_text = textContent.replace(old_str, new_str)
+                    print(f"替换完成，共替换 {textContent.count(old_str)} 处")
+                else:
+                    result_text = textContent
+                    print("未找到匹配的字符串")
+                
+                # 清空并插入新内容
+                self.clearContent(which_text)
+                which_text.insert('end', result_text)
+                
+            else:
+                print("未知的操作模式")
+                
+        except Exception as e:
+            print(f"处理过程中发生错误: {e}")
+            # 发生错误时，尝试使用原始方法作为备选
+            try:
+                if pattern == 'find':
+                    find_str = find_combo.get()
+                    self.search_keyword_in_text(find_str, which_text)
+                elif pattern == 'replace':
+                    textContent = which_text.get('1.0', 'end')
+                    old_str = find_combo.get()
+                    new_str = replace_combo.get()
+                    result_text = textContent.replace(old_str, new_str)
+                    self.clearContent(which_text)
+                    which_text.insert('end', result_text)
+            except Exception as fallback_error:
+                print(f"备选方法也失败: {fallback_error}")
 
     def clear_enter_in_a_text(self,which_text):
         text = which_text.get("1.0", tk.END)
         self.clearContent(which_text)
-        textList=[i for i in text.split('\n') if i!='']
+        textList=[i.strip() for i in text.split('\n') if i!='' and i!=' ' and i!='\t']
         #print(f'textList is:{textList}')
         for index,t in enumerate(textList):
             print(f'第{index+1}个元素为：{t}')
-        which_text.insert("end",'\n'.join(textList))
+        which_text.insert("end",('\n'.join(textList)).replace('\n\n','\n'))
         pass
 
     def clear_llm_ch_in_a_text(self,which_text):
@@ -3298,12 +3435,55 @@ class SimplePostmanApp(tk.Tk):
             if i in text:
                 text=text.replace(i,'')
         self.clearContent(which_text)
-        textList=[i for i in text.split('\n') if i!='']
+        textList=[i.strip() for i in text.split('\n') if i!='' and i!=' ' and i!='\t']
         #print(f'textList is:{textList}')
         for index,t in enumerate(textList):
             print(f'第{index+1}个元素为：{t}')
         which_text.insert("end",'\n'.join(textList))
         pass
+
+    def create_articleAuthor_in_a_text(self,which_text):
+        """
+        AlertGuardian: Intelligent Alert Life-Cycle Management for Large-scale Cloud Systems
+        Guangba&nbsp; Yu,
+        Genting Mai,
+        Algernon: A Flag-Guided Hybrid Fuzzer for Unlocking Hidden Program Paths
+        Peng Deng,
+        Min Yang
+        """
+        # llm_ch_list=['*','-','#']
+        text = which_text.get("1.0", tk.END)
+        self.clearContent(which_text)
+        textList=[i.strip() for i in text.split('\n') if i!='' and i!=' ' and i!='\t']
+        print(f'textList is:{textList}')
+        res=[]
+        t=[]
+        for index, tl in enumerate(textList):
+
+            if len(t)==0:
+                t.append(tl)
+            elif ',' in tl:
+                t.append(tl)
+            else:
+                t.append(tl)
+                print(tl)
+                article=t[0]
+                authors=''.join(t[1:])
+                res.append([article,authors])
+                t=[]
+
+        # 生成带时间戳的文件名
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        default_filename = f"论文作者信息_{timestamp}.xlsx"
+        # 保存论文作者信息
+        file_path = f'{current_script_path}/{fileName}/{default_filename}'
+        # 将结果转为 DataFrame 并保存为 Excel 文件
+        df = pd.DataFrame(res,columns=["文章标题", "作者信息"])
+        df.to_excel(file_path, index=False)
+        #which_text.insert("end", '\n'.join(textList))
+        self.messageInformInWin('Generating excel is successful!',2000)
+        pass
+
 
     def create_business_tools_sub_widgets1(self, sub_win):
         # 主容器分为左右两部分：左侧文本区域 + 右侧按钮区域
