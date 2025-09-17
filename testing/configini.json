@@ -41,5 +41,23 @@
         {
             "x-foo": "true"
         }
+    ],
+    "commonOpertationCh": [
+        "empty",
+        ",",
+        "*",
+        "#",
+        "-",
+        "\\n",
+        "\\n,",
+        "[Remote]",
+        "Guangba&nbsp;",
+        "Research Papers",
+        "Pre-print",
+        "Media Attached",
+        "、",
+        "space",
+        "\\t"
     ]
+
 }
