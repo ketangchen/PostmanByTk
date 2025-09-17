@@ -3066,37 +3066,11 @@ class SimplePostmanApp(tk.Tk):
         )
         find_frame.pack(fill="x", pady=2)
 
-        dict_ch={
-            '星号':'*',
-            '井号':'#',
-            '减号':'-',
-            '逗号':',',
-            '分号':'、',
-            '空号':'',
-            '换行符':'\n',
-            '制表符':'\t'
-        }
-
         sub_win.find_btn_combobox = ttk.Combobox(
             find_frame,
             font=self.set_font_size('Song', 10, 'normal'),
             background='white',
-            values=[
-                '',
-                ',',
-                '*',
-                '#',
-                '-',
-                '\\n',
-                '\\n,',
-                'Guangba&nbsp;',
-                'Research Papers',
-                'Pre-print',
-                'Media Attached',
-                '、',
-                ' ',
-                '\\t'
-            ],
+            values=read_json_file(f'{current_script_path}/configini.json')['commonOpertationCh'],
             state='NORMAL'
         )
         sub_win.find_btn_combobox.pack(side="left", padx=2)  # ,  expand=True, fill="both")
@@ -3132,22 +3106,7 @@ class SimplePostmanApp(tk.Tk):
             replace_frame,
             font=self.set_font_size('Song', 10, 'normal'),
             background='white',
-            values=[
-                '',
-                ',',
-                '*',
-                '#',
-                '-',
-                '\\n',
-                '\\n,',
-                'Guangba&nbsp;',
-                'Research Papers',
-                'Pre-print',
-                'Media Attached',
-                '、',
-                ' ',
-                '\\t'
-            ],
+            values=read_json_file(f'{current_script_path}/configini.json')['commonOpertationCh'],
             state='NORMAL'
         )
         sub_win.replace_btn_combobox.pack(side="left", padx=2)  # ,  expand=True, fill="both")
@@ -3210,6 +3169,27 @@ class SimplePostmanApp(tk.Tk):
             )
         )
         sub_win.clear_enter_btn.pack(side="left", padx=2, expand=True, fill="both")
+
+        # 清除论文作者字符控件（嵌套Frame实现水平排列）
+        clear_ArticleAuthorCh_frame = tk.Frame(
+            right_button_frame,
+            background='lightblue',
+            highlightbackground='lightblue'
+        )
+        clear_ArticleAuthorCh_frame.pack(fill="x", pady=2)
+
+        sub_win.clear_ArticleAuthorCh_btn = tk.Button(
+            clear_ArticleAuthorCh_frame,
+            font=self.set_font_size('Song', 12, 'normal'),
+            background='white',
+            highlightbackground='lightblue',
+            foreground='black',
+            text="ClearArticleAuthorCh",
+            command=lambda: self.clear_llm_ch_in_a_text(
+                self.left_img_output_text
+            )
+        )
+        sub_win.clear_ArticleAuthorCh_btn.pack(side="left", padx=2, expand=True, fill="both")
 
         # 生成存储论文作者控件（嵌套Frame实现水平排列）
         create_articleAuthor_frame = tk.Frame(
@@ -3348,7 +3328,7 @@ class SimplePostmanApp(tk.Tk):
         """
         处理特殊字符转义
         """
-        special_ch_dict = {'\\n': '\n', '\\t': '\t', '\\r': '\r'}
+        special_ch_dict = {'\\n': '\n', '\\t': '\t', '\\r': '\r', 'space': ' ', 'empty': ''}
         result = text
         for escape_char, real_char in special_ch_dict.items():
             result = result.replace(escape_char, real_char)
@@ -3426,6 +3406,20 @@ class SimplePostmanApp(tk.Tk):
         for index,t in enumerate(textList):
             print(f'第{index+1}个元素为：{t}')
         which_text.insert("end",('\n'.join(textList)).replace('\n\n','\n'))
+        pass
+
+    def clear_articleAuthorCh_in_a_text(self,which_text):
+        articleAuthorCh_list = ['*', '-', '#','[Remote]','Guangba&nbsp;','Research Papers','Pre-print','Media Attached']
+        text = which_text.get("1.0", tk.END)
+        for i in articleAuthorCh_list:
+            if i in text:
+                text = text.replace(i, '')
+        self.clearContent(which_text)
+        textList = [i.strip() for i in text.split('\n') if i != '' and i != ' ' and i != '\t']
+        # print(f'textList is:{textList}')
+        for index, t in enumerate(textList):
+            print(f'第{index + 1}个元素为：{t}')
+        which_text.insert("end", '\n'.join(textList))
         pass
 
     def clear_llm_ch_in_a_text(self,which_text):
